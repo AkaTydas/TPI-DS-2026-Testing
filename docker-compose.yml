@@ -1,0 +1,41 @@
+services:
+  postgres-m9:
+    image: postgres:16-alpine
+    container_name: postgres_reservations_m9
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-reservations_db}
+      POSTGRES_USER: ${POSTGRES_USER:-reservations_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-reservations_pass}
+    ports:
+      # Se mapea al puerto 5433 en la máquina host para no chocar con el PostgreSQL local (5432)
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - ./01-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./02-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+      - pgdata_m9:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-reservations_user} -d ${POSTGRES_DB:-reservations_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Interfaz gráfica web para visualizar y consultar la base de datos (opcional pero muy útil)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_reservations_m9
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@frre.utn.edu.ar}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      postgres-m9:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+volumes:
+  pgdata_m9:
+  pgadmin_data:
