@@ -1,0 +1,271 @@
+openapi: 3.0.3
+info:
+  title: Módulo 9 - Reservas de Viajes API
+  description: API para la creación, consulta, modificación, cancelación y activación de reservas de viajes futuras.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8089/api/v1
+    description: Entorno de Desarrollo Local
+paths:
+  /health:
+    get:
+      summary: Health Check del servicio
+      description: Verifica el estado de salud del Módulo 9 y su conectividad con la base de datos.
+      responses:
+        '200':
+          description: Servicio funcionando correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+        '503':
+          description: Servicio no disponible
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /reservas:
+    post:
+      summary: Crear una nueva reserva (RF-9.1, RF-9.2, RF-9.3, RF-9.4, RF-9.5)
+      description: Permite a un cliente programar un viaje a futuro. Valida anticipación, estado del cliente y estimación de tarifa.
+      parameters:
+        - $ref: '#/components/parameters/X-Request-Id'
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearReservaRequest'
+      responses:
+        '201':
+          description: Reserva creada con éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservaResponse'
+        '400':
+          description: Datos inválidos o fuera de la ventana de anticipación permitida
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: Cliente no habilitado o bloqueado
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+    get:
+      summary: Listar reservas del usuario autenticado
+      parameters:
+        - $ref: '#/components/parameters/X-Request-Id'
+        - name: cliente_id
+          in: query
+          required: false
+          schema:
+            type: integer
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Lista de reservas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReservaResponse'
+
+  /reservas/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - $ref: '#/components/parameters/X-Request-Id'
+
+    get:
+      summary: Consultar detalle e historial de una reserva (RF-9.12)
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Detalle de la reserva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservaResponse'
+        '404':
+          description: Reserva no encontrada
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+    patch:
+      summary: Modificar o reprogramar una reserva (RF-9.6)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModificarReservaRequest'
+      responses:
+        '200':
+          description: Reserva actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservaResponse'
+        '400':
+          description: Modificación fuera del límite temporal o no permitida
+
+    delete:
+      summary: Cancelar una reserva (RF-9.7)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                motivo:
+                  type: string
+                  example: "Cambio de planes del usuario"
+              required:
+                - motivo
+      responses:
+        '200':
+          description: Reserva cancelada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservaResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    X-Request-Id:
+      name: X-Request-Id
+      in: header
+      required: false
+      description: Identificador único de trazabilidad entre microservicios
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    CrearReservaRequest:
+      type: object
+      required:
+        - cliente_id
+        - origen
+        - destino
+        - tipo_vehiculo
+        - fecha_hora
+        - zona_horaria
+      properties:
+        cliente_id:
+          type: integer
+          example: 101
+        origen:
+          type: string
+          example: "Av. Las Heras 727, Resistencia"
+        destino:
+          type: string
+          example: "Aeropuerto Internacional Resistencia"
+        tipo_vehiculo:
+          type: string
+          enum: [AUTO, MOTO]
+          example: AUTO
+        fecha_hora:
+          type: string
+          format: date-time
+          example: "2026-11-20T14:30:00Z"
+        zona_horaria:
+          type: string
+          example: "America/Argentina/Buenos_Aires"
+
+    ModificarReservaRequest:
+      type: object
+      properties:
+        origen:
+          type: string
+        destino:
+          type: string
+        tipo_vehiculo:
+          type: string
+          enum: [AUTO, MOTO]
+        fecha_hora:
+          type: string
+          format: date-time
+
+    ReservaResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 501
+        cliente_id:
+          type: integer
+          example: 101
+        origen:
+          type: string
+        destino:
+          type: string
+        tipo_vehiculo:
+          type: string
+          enum: [AUTO, MOTO]
+        fecha_hora:
+          type: string
+          format: date-time
+        zona_horaria:
+          type: string
+        estado:
+          type: string
+          enum: [PENDIENTE, CONFIRMADA, ACTIVADA, CANCELADA, EXPIRADA]
+          example: CONFIRMADA
+        tarifa_estimada:
+          type: number
+          format: float
+          example: 4500.50
+        creado_en:
+          type: string
+          format: date-time
+
+    ProblemDetails:
+      type: object
+      properties:
+        type:
+          type: string
+          example: "about:blank"
+        title:
+          type: string
+          example: "Bad Request"
+        status:
+          type: integer
+          example: 400
+        detail:
+          type: string
+          example: "La reserva debe realizarse con al menos 2 horas de anticipación."
+        instance:
+          type: string
+          example: "/api/v1/reservas"
