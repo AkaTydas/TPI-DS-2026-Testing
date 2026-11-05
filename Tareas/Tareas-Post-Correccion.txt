@@ -1,0 +1,138 @@
+### Pablo — Dashboard HTML, Contratos OpenAPI, Setup E2E y Git (Frontend / QA Lead)
+
+* **Gestión del Dashboard HTML:** Mantener, actualizar y administrar el panel interactivo del plan de acción (`plan_accion_grupo8_m9.html`) para el seguimiento del equipo y control del checklist.
+
+
+* **Configuración del Repositorio (RNF-06):** Crear el archivo `.gitignore` en la raíz para remover `.env`, `node_modules/` y `dist/` del seguimiento de Git.
+
+
+* **Contrato OpenAPI 3.1.0 (RNF-03):** Migrar `openapi.yaml` a la sintaxis 3.1.0 (`type: [..., "null"]`), incorporar el catálogo de eventos asíncronos (`ReservaEventoEnvelope`), consensuarlo con el Grupo 9 y publicarlo en `2026-TPI-main/contratos/m9_reservas/openapi.yml`.
+
+
+* **Setup de Playwright E2E (RNF-07 / TP3):** Instalar `@playwright/test`, crear `playwright.config.ts`, agregar scripts en `package.json` (`test:e2e`) y dejar preparado el esqueleto de pruebas end-to-end.
+
+
+
+---
+
+### Gabilan — Autenticación, Middleware y Keycloak (Seguridad - Auth)
+
+* **Arquitectura de Autenticación:** Integrar la verificación de `Bearer Token` utilizando la referencia de Keycloak.
+
+
+* **Desacoplamiento de Lógica:** Separar formalmente la capa de autenticación de la lógica de negocio en el manejo de peticiones HTTP.
+
+
+* **Inyección de Contexto:** Configurar el middleware de autenticación para parsear las credenciales y transmitir la identidad del usuario (`sub`, `roles`) a las rutas protegidas.
+
+
+
+---
+
+### Abril — Control de Acceso y Permisos por Rol (Seguridad - RBAC)
+
+* **Corrección de Permisos en Consulta:** Permitir que el rol `CONDUCTOR` pueda leer el detalle de la reserva en `GET /reservas/:id` evitando errores de acceso `403 Forbidden`.
+
+
+* **Autorización RBAC (RF-1.3):** Aplicar controles de acceso diferenciados para los roles `CLIENTE`, `CONDUCTOR`, `OPERADOR` y `SERVICIO` en cada endpoint del módulo.
+
+
+* **Validación de Propiedad de Recursos:** Garantizar que un cliente solo pueda consultar o modificar sus propias reservas.
+
+
+
+---
+
+### Luna — Persistencia, ORM y Optimización de Consultas (Database Engineer)
+
+* **Capa de ORM:** Configurar e implementar el ORM para la gestión de entidades y mapeo relacional en PostgreSQL.
+
+
+* **Optimización de Consultas SQL:** Eliminar los ordenamientos en memoria (`sort`) en código Node.js cuando la consulta a la base de datos ya traiga un `ORDER BY` aplicado.
+
+
+* **Estructura de Persistencia:** Garantizar el correcto almacenamiento relacional de las reservas, el registro de idempotencia y la tabla de auditoría/historial.
+
+
+
+---
+
+### Forge — Resiliencia HTTP y Manejo de Errores (Backend Integrations)
+
+* **Manejo de Caídas en Clientes HTTP (RNF-13):** En `m2Client`, `m4Client`, `m5Client` y `m7Client`, eliminar el fallback silencioso a datos simulados cuando `USE_EXTERNAL_MOCKS=false` y lanzar un error `503`.
+
+
+* **Integración de Servicios:** Desarrollar las llamadas HTTP externas hacia los módulos colaboradores (M2 Clientes, M4 Ubicación, M5 Despacho, M7 Tarifas).
+
+
+* **Formato Standard de Excepciones:** Formatear las respuestas de error ante fallas externas bajo la especificación RFC 7807.
+
+
+
+---
+
+### Kiara — Idempotencia y Control de Concurrencia (Backend Senior)
+
+* **Validación de Payloads Idempotentes (RNF-08 / RNF-09):** En `crearReserva()`, responder con HTTP `422 Unprocessable Content` si se reingresa una `claveIdempotencia` existente pero con un cuerpo de datos modificado.
+
+
+* **Protección contra Race Conditions:** Implementar bloqueos o controles transaccionales para evitar doble procesamiento ante peticiones simultáneas.
+
+
+* **Garantía de Despacho Único:** Asegurar que una reserva confirmada origine como máximo una solicitud de viaje hacia M5.
+
+
+
+---
+
+### Programador por Hobby — Buenas Prácticas REST y Paginación (API Developer)
+
+* **Header Location (DS-04):** Incluir la cabecera `Location: /reservas/{id}` en las respuestas HTTP `201 Created` al registrar una reserva.
+
+
+* **Paginación en Listados:** Implementar soporte de parámetros de consulta `page` y `size` en los endpoints de consulta de reservas.
+
+
+* **Estandarización de DTOs:** Homogeneizar los esquemas de entrada y salida de los controladores acorde al contrato estandarizado.
+
+
+
+---
+
+### Enana — Recordatorios y Notificaciones Asíncronas (RF-9.8 & Eventos)
+
+* **Endpoint de Recordatorio (RF-9.8):** Desarrollar la ruta `POST /reservas/:id/recordatorio` y su lógica de servicio asociada.
+
+
+* **Emisión de Eventos a M8:** Enviar el evento asíncrono `RESERVA_RECORDATORIO` al Módulo de Notificaciones (M8) vía mensajería/RabbitMQ.
+
+
+* **Trazabilidad (RF-9.12):** Asentar el evento de envío del recordatorio en la tabla `historial_reservas`.
+
+
+
+---
+
+### Agustin 2 — Automación y Scheduler de Activación (RF-9.9)
+
+* **Servicio Scheduler (RF-9.9):** Crear el servicio en segundo plano `ReservationScheduler` para consultar periódicamente las reservas en estado `CONFIRMADA` próximas a iniciar.
+
+
+* **Disparo Automático hacia M5:** Ejecutar automáticamente la activación y creación de la orden de despacho hacia M5 al cumplirse la ventana temporal.
+
+
+* **Control de Entorno:** Garantizar que el scheduler se inicialice automáticamente en producción/desarrollo pero se omita durante la ejecución de tests.
+
+
+
+---
+
+### tutuca lopez — Reglas de Cancelación Financiera y Tests Unitarios (QA / Backend)
+
+* **Cargo de Cancelación Tardía (RF-9.7):** Calcular e integrar con M7 la aplicación de cargos financieros cuando la cancelación ocurra fuera de la ventana permitida.
+
+
+* **Mantenimiento de Tests Jest:** Ampliar y mantener la suite de pruebas unitarias e integración en Jest, asegurando el cumplimiento de la cobertura de código.
+
+
+* **Pruebas de Integración con M7:** Validar las reglas de simulación de cobro/reintegro ante estados de cancelación diferida.

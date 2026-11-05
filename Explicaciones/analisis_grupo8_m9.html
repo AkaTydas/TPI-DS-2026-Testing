@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual Maestro TPI 2026 — Grupo 8 (Módulo 9: Reservas de Viajes)</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    .tab-btn.active {
+      background-color: var(--primary);
+      color: var(--primary-foreground);
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.55rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .step-circle {
+      width: 1.75rem;
+      height: 1.75rem;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    pre {
+      overflow-x: auto;
+      font-size: 0.75rem;
+      line-height: 1.45;
+    }
+    details > summary {
+      list-style: none;
+    }
+    details > summary::-webkit-details-marker {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-4 md:p-6">
+
+  <!-- ==================== HERO HEADER ==================== -->
+  <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 md:p-6 shadow-sm mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <span class="badge bg-blue-500/15 text-blue-500 border border-blue-500/30">UTN FRRe · Ingeniería en Sistemas</span>
+          <span class="badge bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">Desarrollo de Software 2026</span>
+          <span class="badge bg-purple-500/15 text-purple-500 border border-purple-500/30">Grupo 8 · Módulo 9 (Reservas de Viajes)</span>
+        </div>
+        <h1 class="text-xl md:text-2xl font-bold text-[var(--foreground)]">Manual Maestro del Trabajo Práctico Integrador (TPI)</h1>
+        <p class="text-sm text-[var(--muted-foreground)] mt-1">
+          Guía integral desde cero: qué pide la cátedra, cómo funciona toda la plataforma, qué construyó el Grupo 8 archivo por archivo y exactamente qué falta hacer.
+        </p>
+      </div>
+
+      <!-- KPIs -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 shrink-0">
+        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl px-3 py-2 text-center">
+          <div class="text-xs text-[var(--muted-foreground)]">Módulos TPI</div>
+          <div class="text-base font-bold text-blue-500">9 (M1..M9)</div>
+        </div>
+        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl px-3 py-2 text-center">
+          <div class="text-xs text-[var(--muted-foreground)]">Endpoints M9</div>
+          <div class="text-base font-bold text-emerald-500">10 Rutas</div>
+        </div>
+        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl px-3 py-2 text-center">
+          <div class="text-xs text-[var(--muted-foreground)]">Suite de Tests</div>
+          <div class="text-base font-bold text-purple-500">35 Passing</div>
+        </div>
+        <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl px-3 py-2 text-center">
+          <div class="text-xs text-[var(--muted-foreground)]">Puntos a Pulir</div>
+          <div class="text-base font-bold text-amber-500">10 Mejoras</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Bar (9 Tabs) -->
+    <div class="flex flex-wrap gap-1.5 mt-6 pt-4 border-t border-[var(--border)]">
+      <button onclick="switchTab('tab1')" id="btn-tab1" class="tab-btn active px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        1. 🌍 Contexto desde Cero
+      </button>
+      <button onclick="switchTab('tab2')" id="btn-tab2" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        2. 🔄 Máquina de Estados y Reglas M9
+      </button>
+      <button onclick="switchTab('tab3')" id="btn-tab3" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        3. 📂 Todos los Archivos del Grupo 8
+      </button>
+      <button onclick="switchTab('tab4')" id="btn-tab4" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        4. 🗄️ Base de Datos SQL al Detalle
+      </button>
+      <button onclick="switchTab('tab5')" id="btn-tab5" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        5. 🌐 Los 10 Endpoints (con JSONs)
+      </button>
+      <button onclick="switchTab('tab6')" id="btn-tab6" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        6. 🔌 Integración M2, M4, M5, M7, M8
+      </button>
+      <button onclick="switchTab('tab7')" id="btn-tab7" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        7. 🧪 Los 35 Tests Explicados
+      </button>
+      <button onclick="switchTab('tab8')" id="btn-tab8" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        8. 🚀 Qué Falta Hacer (con Código)
+      </button>
+      <button onclick="switchTab('tab9')" id="btn-tab9" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        9. 🎭 Playwright & Tests E2E
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 1: CONTEXTO DESDE CERO (PARA ALGUIEN QUE NUNCA VIO EL TRABAJO)    -->
+  <!-- ===================================================================== -->
+  <div id="tab1" class="tab-content active space-y-6">
+
+    <!-- Explicación de cero -->
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">1.1. Empecemos de cero: ¿Qué estamos construyendo en esta materia?</h2>
+      <p class="text-sm text-[var(--muted-foreground)] leading-relaxed mb-4">
+        Imaginá que queremos crear una aplicación como <strong>Uber, Cabify o DiDi</strong> para pedir viajes en <strong>Auto (`AUTO`)</strong> o en <strong>Moto (`MOTO`)</strong> en la ciudad. En una empresa real grande, una aplicación así no se programa en un solo archivo gigante, sino que se divide en varios <strong>microservicios independientes</strong> (uno maneja los usuarios, otro el GPS y los mapas, otro busca choferes libres, otro cobra con tarjeta, otro manda notificaciones y otro maneja las reservas programadas).
+      </p>
+      <p class="text-sm text-[var(--muted-foreground)] leading-relaxed mb-4">
+        En la cátedra de <strong>Desarrollo de Software (2026)</strong> hicieron exactamente eso: dividieron toda la plataforma en <strong>9 Módulos (`M1` a `M9`)</strong> y repartieron los módulos entre los <strong>16 grupos de alumnos</strong> de la comisión.
+      </p>
+
+      <!-- Actores del Sistema -->
+      <h3 class="text-sm font-bold mt-5 mb-3">¿Quiénes usan esta plataforma? (Los 5 Actores del Enunciado)</h3>
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
+        <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-blue-500 mb-1">🙋‍♂️ 1. Cliente (Pasajero)</div>
+          <p class="text-[var(--muted-foreground)]">Persona que crea su cuenta, guarda direcciones favoritas, pide viajes inmediatos o <strong>programa reservas para el futuro (en tu módulo M9)</strong>, elige `AUTO` o `MOTO`, paga, cancela y califica al chofer.</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-emerald-500 mb-1">🚗 2. Conductor (Chofer)</div>
+          <p class="text-[var(--muted-foreground)]">Persona habilitada que registra su auto o moto, sube su carnet/seguro, se pone "conectado/disponible", envía su ubicación GPS, acepta ofertas de viaje, lleva al pasajero y lo califica.</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-purple-500 mb-1">🛡️ 3. Operador / Admin</div>
+          <p class="text-[var(--muted-foreground)]">Empleado administrativo de la plataforma que aprueba papeles de choferes, bloquea cuentas de clientes problemáticos, audita viajes/reservas y activa despachos manualmente si hace falta.</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-amber-500 mb-1">☁️ 4. Servicios Externos</div>
+          <p class="text-[var(--muted-foreground)]">Proveedores fuera de nuestro sistema: servidores de Mapas/GPS, Pasarelas de Pago (tarjetas), servidores de Email/SMS/Push. En TP1 se pueden simular (mocks).</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-rose-500 mb-1">🤝 5. Equipo Integrador</div>
+          <p class="text-[var(--muted-foreground)]">El conjunto de grupos (1 grupo de cada módulo M1..M9) que se junta para conectar sus contenedores Docker y hacer funcionar una instancia completa de punta a punta.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Explicación de las 2 Carpetas que tenés -->
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-3">1.2. ¿Qué son las dos cosas que me pasaste (la carpeta del Desktop y el archivo ZIP)?</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-4 rounded-xl bg-[var(--background)] border-2 border-blue-500/40">
+          <div class="flex items-center justify-between mb-2">
+            <span class="badge bg-blue-500/20 text-blue-500">1. Carpeta en tu Escritorio</span>
+            <span class="font-mono text-xs text-[var(--muted-foreground)]">2026-TPI-main</span>
+          </div>
+          <h3 class="font-bold text-sm mb-2">El Repositorio Común de toda la Cátedra</h3>
+          <p class="text-xs text-[var(--muted-foreground)] leading-relaxed mb-3">
+            Es el repositorio donde todos los grupos del curso ven las consignas y publican sus <strong>Contratos OpenAPI</strong>. Adentro tiene:
+          </p>
+          <ul class="text-xs text-[var(--muted-foreground)] space-y-1.5 list-disc pl-4">
+            <li><strong><code>README.md</code>:</strong> El enunciado oficial con los 9 módulos, los requerimientos funcionales (RF) de cada módulo, los 20 requerimientos no funcionales (RNF) y la tabla de qué grupo hace qué módulo.</li>
+            <li><strong><code>filminas/</code>:</strong> Dos presentaciones PDF del profesor Dr. Jorge Villaverde:
+              <br>• <code>DS-02</code>: Gestión del ciclo de vida de proyectos (build, dependencias, tests, empaquetado).
+              <br>• <code>DS-04</code>: Servicios Web y REST (rutas, verbos HTTP, códigos 2xx/4xx/5xx, errores `application/problem+json`, `Idempotency-Key`, paginación, JWT y OpenAPI).</li>
+            <li><strong><code>contratos/</code>:</strong> Tiene una carpeta por módulo (`m2_clientes`, `m3_conductores`, ..., `m9_reservas`). Ahí adentro va el archivo `openapi.yml` que define qué endpoints tiene cada módulo.
+              <br><span class="text-amber-500 font-semibold">👉 Estado actual en tu carpeta:</span> `m2_clientes` (1492 líneas) y `m6_viajes` (823 líneas) ya están completos; los demás (incluido `m9_reservas/openapi.yml`) tienen solo 6 líneas de plantilla vacía.</li>
+          </ul>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[var(--background)] border-2 border-emerald-500/40">
+          <div class="flex items-center justify-between mb-2">
+            <span class="badge bg-emerald-500/20 text-emerald-500">2. El Archivo ZIP que enviaste</span>
+            <span class="font-mono text-xs text-[var(--muted-foreground)]">2026-08-TPI-main.zip</span>
+          </div>
+          <h3 class="font-bold text-sm mb-2">El Proyecto Propio de tu Grupo (Grupo 8 - Módulo 9)</h3>
+          <p class="text-xs text-[var(--muted-foreground)] leading-relaxed mb-3">
+            Es el código fuente real que programaron tus compañeros del <strong>Grupo 8</strong> para resolver el <strong>Módulo 9: Reservas de Viajes</strong>. Adentro tiene:
+          </p>
+          <ul class="text-xs text-[var(--muted-foreground)] space-y-1.5 list-disc pl-4">
+            <li>Un servidor backend completo escrito en <strong>Node.js v24 + TypeScript 5 + Express.js</strong> escuchando en el puerto <strong><code>8089</code></strong>.</li>
+            <li>Un esquema de base de datos <strong>PostgreSQL 16</strong> (<code>sql/01_init_schema.sql</code>) con 3 tablas (`reservas`, `historial_reservas`, `registro_idempotencia`).</li>
+            <li>Un archivo <strong><code>openapi.yaml</code></strong> de <strong>697 líneas</strong> que documenta los 10 endpoints que programaron.</li>
+            <li>Configuración de contenedores <strong><code>Dockerfile</code></strong> y <strong><code>docker-compose.yml</code></strong> lista para levantar la base de datos y el backend con un solo comando.</li>
+            <li>Una batería de <strong>35 tests automatizados</strong> (unitarios y de integración con Jest y Supertest) que prueban todo el ciclo de vida de una reserva.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Los 9 Módulos y las 6 Reglas de Oro del Dominio -->
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">1.3. Las 6 Reglas Inquebrantables del Dominio y Tabla de los 9 Módulos</h2>
+      <p class="text-xs text-[var(--muted-foreground)] mb-3">
+        El `README.md` de la cátedra establece <strong>6 reglas de dominio</strong> que todos los módulos están obligados a respetar:
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs mb-5">
+        <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <strong>1. Historial no destructivo:</strong> Ningún cambio de estado borra el anterior; todo queda registrado en una tabla de auditoría histórica.
+        </div>
+        <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <strong>2. Asignación única en despacho:</strong> Aunque dos choferes acepten al mismo milisegundo en M5, el viaje solo se asigna a uno.
+        </div>
+        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+          <strong class="text-emerald-500">3. Activación única de reserva (CLAVE EN TU M9):</strong> Una reserva activada en M9 originará <strong>como máximo una solicitud de despacho en M5</strong>, aunque el evento o petición se procese más de una vez.
+        </div>
+        <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <strong>4. Pagos idempotentes:</strong> En M7 un cobro o reintegro repetido nunca duplica movimiento de plata.
+        </div>
+        <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <strong>5. Propiedad exclusiva de datos:</strong> Cada módulo es dueño de su base de datos. Prohibido hacer `SELECT` directo a la base de otro módulo; todo va por API o eventos.
+        </div>
+        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+          <strong class="text-amber-500">6. Sin bloqueos indefinidos (CLAVE EN TU M9):</strong> Si un módulo externo tarda o está caído, hay que cortar con timeout rápido y dar una respuesta explícita (ej. `503`), jamás quedarse colgado esperando.
+        </div>
+      </div>
+
+      <!-- Tabla de los 9 módulos -->
+      <div class="overflow-x-auto border border-[var(--border)] rounded-xl">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-[var(--background)] border-b border-[var(--border)] text-[var(--muted-foreground)]">
+              <th class="p-2.5">ID</th>
+              <th class="p-2.5">Nombre del Módulo</th>
+              <th class="p-2.5">Grupos a Cargo</th>
+              <th class="p-2.5">Responsabilidad Principal</th>
+              <th class="p-2.5">Relación con tu Módulo 9 (Grupo 8)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border)]">
+            <tr>
+              <td class="p-2.5 font-mono font-bold">M1</td>
+              <td class="p-2.5 font-semibold">Identidad y Acceso</td>
+              <td class="p-2.5">Cátedra / Común</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Login, registro de credenciales, roles (`CLIENTE`, `CONDUCTOR`, `OPERADOR`, `SERVICIO`) y emisión de JWT.</td>
+              <td class="p-2.5"><span class="badge bg-emerald-500/15 text-emerald-500">M9 valida sus JWTs en cada ruta</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">M2</td>
+              <td class="p-2.5 font-semibold">Clientes</td>
+              <td class="p-2.5">Grupo 1 y Grupo 17</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Perfil del cliente, direcciones frecuentes, preferencias, historial resumido, calificaciones y bloqueos.</td>
+              <td class="p-2.5"><span class="badge bg-blue-500/15 text-blue-500">M9 lo llama para ver si el cliente está ACTIVO</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">M3</td>
+              <td class="p-2.5 font-semibold">Conductores y Vehículos</td>
+              <td class="p-2.5">Grupo 2 y Grupo 15</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Datos del chofer, autos y motos, vencimiento de carnet/seguro, habilitación por operador.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Sin conexión directa con M9 (interactúa con M4, M5 y M6).</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">M4</td>
+              <td class="p-2.5 font-semibold">Ubicación y Disponibilidad</td>
+              <td class="p-2.5">Grupo 3 y Grupo 14</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Posición GPS de choferes, choferes cercanos, geocodificación, validación de zona de cobertura, distancia (km) y ETA (min).</td>
+              <td class="p-2.5"><span class="badge bg-blue-500/15 text-blue-500">M9 lo llama para validar cobertura y calcular km/min</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">M5</td>
+              <td class="p-2.5 font-semibold">Solicitud y Despacho</td>
+              <td class="p-2.5">Grupo 4 y Grupo 13</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Recibe viajes inmediatos o reservas activadas, busca candidatos cercanos en M4, manda ofertas con vencimiento y asigna chofer.</td>
+              <td class="p-2.5"><span class="badge bg-purple-500/15 text-purple-500">M9 le pide activar la reserva y M5 responde por webhook</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">M6</td>
+              <td class="p-2.5 font-semibold">Viajes y Ciclo de Vida</td>
+              <td class="p-2.5">Grupo 5 y Grupo 12</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Controla el viaje una vez que hay chofer asignado: arribo al origen, inicio validado con QR, finalización o cancelación en viaje.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Sin conexión directa con M9 (M5 crea el viaje en M6 tras asignar chofer).</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">M7</td>
+              <td class="p-2.5 font-semibold">Tarifas, Pagos y Liquidaciones</td>
+              <td class="p-2.5">Grupo 6 y Grupo 11</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Calcula tarifa estimada, procesa el cobro, aplica cargos por cancelación, hace reintegros y liquida ganancia al chofer.</td>
+              <td class="p-2.5"><span class="badge bg-blue-500/15 text-blue-500">M9 lo llama para estimar tarifa (y eventual cargo cancelación)</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">M8</td>
+              <td class="p-2.5 font-semibold">Notificaciones, Docs y Soporte</td>
+              <td class="p-2.5">Grupo 7 y Grupo 10</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Envía avisos por Email/SMS/Push, genera el QR de un solo uso para iniciar viaje, genera recibo PDF y tickets de soporte.</td>
+              <td class="p-2.5"><span class="badge bg-amber-500/15 text-amber-500">M9 le envía todos los eventos para avisar al cliente</span></td>
+            </tr>
+            <tr class="bg-emerald-500/10">
+              <td class="p-2.5 font-mono font-bold text-emerald-500">M9</td>
+              <td class="p-2.5 font-bold text-emerald-500">Reservas de Viajes (USTEDES)</td>
+              <td class="p-2.5 font-bold text-emerald-500">Grupo 8 y Grupo 9</td>
+              <td class="p-2.5 text-[var(--foreground)]">Programación de viajes a futuro (30 min a 30 días), validación, modificación, cancelación, recordatorios, activación hacia M5 e historial.</td>
+              <td class="p-2.5"><span class="badge bg-emerald-500 text-white">Es el módulo de tu grupo</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Hoja de Ruta de las 3 Entregas (TP1, TP2, TP3) -->
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-3">1.4. Las 3 Entregas del Cuatrimestre (TP1, TP2 y TP3) según los RNF</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-[var(--background)] border-l-4 border-emerald-500">
+          <div class="font-bold text-emerald-500 uppercase mb-1">Entrega 1 (TP1 — Donde están ahora)</div>
+          <ul class="space-y-1.5 text-[var(--muted-foreground)] list-disc pl-4">
+            <li><strong>RNF-01 / RNF-02:</strong> Elegir stack tecnológico (Node + TS + Express) y diseñar el servicio respetando los límites de M9.</li>
+            <li><strong>RNF-03 (Contratos):</strong> Definir APIs síncronas con OpenAPI, errores consistentes (`problem+json`) y catálogo de eventos.</li>
+            <li><strong>RNF-04 (Contenedores):</strong> `Dockerfile` reproducible y `docker-compose.yml` funcional.</li>
+            <li><strong>RNF-05 (Propiedad de datos):</strong> Base de datos PostgreSQL propia (`m9_reservas`).</li>
+            <li><strong>RNF-06 (Secretos):</strong> Todo por variables de entorno, sin subir `.env` ni claves al repositorio.</li>
+            <li><strong>RNF-07 / RNF-08:</strong> Tests unitarios y de integración local + evitar doble activación ante concurrencia.</li>
+          </ul>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border-l-4 border-blue-500">
+          <div class="font-bold text-blue-500 uppercase mb-1">Entrega 2 (TP2 — Integración Distribuida)</div>
+          <ul class="space-y-1.5 text-[var(--muted-foreground)] list-disc pl-4">
+            <li><strong>RNF-09 (Idempotencia total):</strong> Consumidores de mensajes y endpoints tolerando reintentos sin duplicar efectos.</li>
+            <li><strong>RNF-10 (Mensajería):</strong> Integrar <strong>RabbitMQ</strong> para flujos asíncronos (ej. eventos hacia M8 y despacho con M5).</li>
+            <li><strong>RNF-11 (Caché y TTL):</strong> Integrar <strong>Redis</strong> para estados efímeros, bloqueos o caché de idempotencia con TTL.</li>
+            <li><strong>RNF-12 / RNF-13 / RNF-14:</strong> Seguridad completa con M1, timeouts/reintentos reales entre contenedores de distintos grupos y logs estructurados JSON con correlación.</li>
+            <li><strong>RNF-17 (CI/CD):</strong> Pipeline automático (GitHub Actions) que corra build y tests en cada push.</li>
+          </ul>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border-l-4 border-purple-500">
+          <div class="font-bold text-purple-500 uppercase mb-1">Entrega 3 (TP3 — Frontend, Cloud y E2E)</div>
+          <ul class="space-y-1.5 text-[var(--muted-foreground)] list-disc pl-4">
+            <li><strong>RNF-15 (Usabilidad):</strong> Interfaz de usuario (Frontend Web/Móvil responsivo) mostrando estados claros de espera, confirmación, rechazo, cancelación y error.</li>
+            <li><strong>RNF-16 (Performance):</strong> Medir tiempos de respuesta del recorrido crítico con pruebas de carga.</li>
+            <li><strong>RNF-18 (Portabilidad Cloud):</strong> Publicar la solución en la nube con HTTPS sin tocar el código de negocio.</li>
+            <li><strong>RNF-19 (Privacidad y Auditoría):</strong> No exponer datos sensibles en logs/URLs y trazabilidad completa E2E.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 2: MÁQUINA DE ESTADOS Y REGLAS DE NEGOCIO DE M9                   -->
+  <!-- ===================================================================== -->
+  <div id="tab2" class="tab-content space-y-6">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">2.1. La Máquina de Estados de una Reserva en M9</h2>
+      <p class="text-sm text-[var(--muted-foreground)] mb-4">
+        Para entender cómo funciona el Módulo 9, lo más importante es entender por qué estados pasa una reserva desde que nace hasta que termina. En la base de datos (`reservas.estado`), una reserva solo puede tener uno de estos <strong>5 estados</strong>:
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs mb-6">
+        <div class="p-3.5 rounded-xl bg-slate-500/10 border border-slate-500/30">
+          <div class="font-mono font-bold text-sm mb-1">1. PENDIENTE</div>
+          <p class="text-[var(--muted-foreground)]">Estado inicial alternativo si quedara esperando alguna confirmación externa. Permite modificarse (`PATCH`) y cancelarse.</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30">
+          <div class="font-mono font-bold text-blue-500 text-sm mb-1">2. CONFIRMADA</div>
+          <p class="text-[var(--muted-foreground)]">Estado en el que nace la reserva cuando M2 (cliente activo), M4 (cobertura OK) y M7 (tarifa estimada) responden bien. Permite modificarse, cancelarse o enviarse a activar a M5.</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+          <div class="font-mono font-bold text-emerald-500 text-sm mb-1">3. ACTIVADA</div>
+          <p class="text-[var(--muted-foreground)]">Estado terminal exitoso en M9: significa que M5 buscó conductor, un chofer aceptó el viaje y M5 nos avisó por webhook (`resultado: CONFIRMADA`). Ya no se puede modificar ni cancelar en M9 (ahora es un viaje en M6).</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30">
+          <div class="font-mono font-bold text-rose-500 text-sm mb-1">4. CANCELADA</div>
+          <p class="text-[var(--muted-foreground)]">Estado terminal cuando el cliente o un operador la cancela (con un motivo de al menos 3 letras) antes de que haya sido enviada a despacho. Ya no admite ningún cambio (`409 Conflict`).</p>
+        </div>
+        <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+          <div class="font-mono font-bold text-amber-500 text-sm mb-1">5. VENCIDA</div>
+          <p class="text-[var(--muted-foreground)]">Estado terminal cuando se activó hacia M5, pero M5 nos avisó por webhook (`resultado: VENCIDA`) que ningún conductor aceptó el viaje o se agotó el tiempo de búsqueda.</p>
+        </div>
+      </div>
+
+      <!-- Detalle importante del estado intermedio "En Despacho" -->
+      <div class="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs mb-6">
+        <div class="font-bold text-purple-500 text-sm mb-1">💡 Detalle clave que hizo tu grupo: ¿Qué pasa entre que llamás a `/activar` y M5 responde el Webhook?</div>
+        <p class="text-[var(--muted-foreground)] leading-relaxed">
+          Cuando un operador o proceso llama a <code>POST /reservas/:id/activar</code>, M9 le envía la solicitud a M5 y M5 devuelve inmediatamente un ID de solicitud (por ejemplo, <code>solicitud_id: "sol-m5-01929b1c"</code>), pero <strong>M5 todavía está buscando chofer</strong> (eso puede tardar varios segundos o minutos).
+          <br>¿Cómo lo resolvió tu grupo? Guardan ese ID en la columna <code>solicitud_despacho_id</code> mientras el estado sigue siendo <code>CONFIRMADA</code>. Pero en `modificarReserva()` y en `cancelarReserva()` pusieron una trava expresa:
+          <br><code>if (reserva.solicitudDespachoId) throw new AppError({ status: 409, title: 'Reserva en despacho' })</code>.
+          <br>Así impiden que el cliente modifique o cancele la reserva en M9 mientras M5 ya le está ofreciendo el viaje a los conductores. ¡Después, cuando M5 llama al webhook `POST /reservas/:id/despacho`, el estado cambia definitivamente a `ACTIVADA` o `VENCIDA`!
+        </p>
+      </div>
+
+      <!-- Tabla de los 12 RF de M9 y cómo los implementó tu grupo -->
+      <h3 class="text-sm font-bold mb-3">2.2. Tabla Completa de los 12 Requerimientos Funcionales de M9 (RF-9.1 a RF-9.12)</h3>
+      <div class="overflow-x-auto border border-[var(--border)] rounded-xl">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-[var(--background)] border-b border-[var(--border)] text-[var(--muted-foreground)]">
+              <th class="p-2.5">ID</th>
+              <th class="p-2.5">Nombre</th>
+              <th class="p-2.5">Qué exige la cátedra</th>
+              <th class="p-2.5">Cómo lo programó el Grupo 8</th>
+              <th class="p-2.5">Estado</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border)]">
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.1</td>
+              <td class="p-2.5 font-semibold">Crear reserva</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Reservar indicando origen, destino, tipo de vehículo, fecha, hora y zona horaria.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Endpoint <code>POST /reservas</code> con validación Zod en `reservationController.ts` y lógica en `ReservationService.crearReserva()`.</td>
+              <td class="p-2.5"><span class="badge bg-emerald-500/15 text-emerald-500">✅ Hecho</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.2</td>
+              <td class="p-2.5 font-semibold">Ventana de anticipación</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Validar anticipación mínima y máxima permitida al crear o modificar.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Clase `AnticipationValidator` (`src/services/anticipationValidator.ts`): exige mínimo 30 minutos (`ANTICIPACION_MINIMA_MINUTOS`) y máximo 30 días (`ANTICIPACION_MAXIMA_DIAS`). Si no cumple, devuelve `422`.</td>
+              <td class="p-2.5"><span class="badge bg-emerald-500/15 text-emerald-500">✅ Hecho</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.3</td>
+              <td class="p-2.5 font-semibold">Validación de datos</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Validar cliente habilitado, direcciones, cobertura, tipo de vehículo y condiciones.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Llama a `M2Client.verificarEstadoCuenta()` (si es `BLOQUEADO` lanza `422`) y a `M4Client.validarYEstimar()` (si `origen_valido` o `destino_valido` es `false` lanza `422`).</td>
+              <td class="p-2.5"><span class="badge bg-emerald-500/15 text-emerald-500">✅ Hecho</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.4</td>
+              <td class="p-2.5 font-semibold">Estimación y condiciones</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Solicitar estimación de tarifa y presentar condiciones de confirmación, modificación y cancelación.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Llama a `M7Client.estimarTarifa()` enviando `distancia_km`, `tiempo_estimado_min`, `tipo_vehiculo` y `fecha_hora`. Guarda `tarifaEstimada`, `moneda` (`ARS`) y `condicionesTarifa`.</td>
+              <td class="p-2.5"><span class="badge bg-emerald-500/15 text-emerald-500">✅ Hecho</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.5</td>
+              <td class="p-2.5 font-semibold">Confirmación</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Registrar la reserva en estado pendiente o confirmada según las reglas.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Persiste en PostgreSQL en estado `CONFIRMADA` (y la base soporta también `PENDIENTE`).</td>
+              <td class="p-2.5"><span class="badge bg-emerald-500/15 text-emerald-500">✅ Hecho</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.6</td>
+              <td class="p-2.5 font-semibold">Modificar o reprogramar</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Modificar datos permitidos o reprogramar mientras no haya sido activada ni supere el límite temporal.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Endpoint `PATCH /reservas/:id`. Verifica estado `PENDIENTE`/`CONFIRMADA`, que no tenga `solicitudDespachoId`, valida nueva fecha con `AnticipationValidator`, recalcula M4 y M7, guarda y notifica a M8.</td>
+              <td class="p-2.5"><span class="badge bg-emerald-500/15 text-emerald-500">✅ Hecho</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.7</td>
+              <td class="p-2.5 font-semibold">Cancelar reserva</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Cliente u operador debe poder cancelar con motivo y eventual cargo según las reglas vigentes.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Endpoint `POST /reservas/:id/cancelar` con motivo obligatorio (>= 3 chars). Pasa a `CANCELADA` y notifica a M8. <em>Falta: consultar/registrar eventual cargo de cancelación con M7.</em></td>
+              <td class="p-2.5"><span class="badge bg-amber-500/15 text-amber-500">🟡 Parcial</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.8</td>
+              <td class="p-2.5 font-semibold">Recordatorios</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Solicitar notificaciones previas configurables para cliente y, cuando corresponda, conductor.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Notifica a M8 en creación, modificación, cancelación, activación y vencimiento. Declararon el tipo `'RESERVA_RECORDATORIO'`, pero <em>falta el endpoint o cron que dispare el recordatorio previo</em>.</td>
+              <td class="p-2.5"><span class="badge bg-rose-500/15 text-rose-500">🔴 Falta</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.9</td>
+              <td class="p-2.5 font-semibold">Activación en despacho</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Al llegar el momento configurado, solicitar a M5 la creación de una solicitud de viaje vinculada.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Endpoint `POST /reservas/:id/activar` que llama a `M5Client.activarSolicitud()`. <em>Falta un scheduler/timer automático que dispare esa activación al llegar la hora.</em></td>
+              <td class="p-2.5"><span class="badge bg-amber-500/15 text-amber-500">🟡 Parcial</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.10</td>
+              <td class="p-2.5 font-semibold">Activación idempotente</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Reintentos o eventos duplicados deben producir como máximo una solicitud de despacho.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Verifica `if (reserva.solicitudDespachoId)` antes de llamar a M5, envía header `Idempotency-Key` a M5 y tiene restricción `UNIQUE` en la columna `solicitud_despacho_id`.</td>
+              <td class="p-2.5"><span class="badge bg-emerald-500/15 text-emerald-500">✅ Hecho</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.11</td>
+              <td class="p-2.5 font-semibold">Vencimiento y no disponibilidad</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Registrar expiración o imposibilidad de servicio y notificar alternativas o cancelación.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Webhook `POST /reservas/:id/despacho` recibe `resultado: "VENCIDA"` desde M5, cambia estado a `VENCIDA`, audita en historial y notifica `RESERVA_VENCIDA` a M8.</td>
+              <td class="p-2.5"><span class="badge bg-emerald-500/15 text-emerald-500">✅ Hecho</span></td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">RF-9.12</td>
+              <td class="p-2.5 font-semibold">Historial de reserva</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Conservar historial de creación, confirmación, cambios, recordatorios, activación y cancelación.</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Tabla `historial_reservas`, repositorio `HistoryRepository` y endpoint `GET /reservas/:id/historial`.</td>
+              <td class="p-2.5"><span class="badge bg-emerald-500/15 text-emerald-500">✅ Hecho</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 3: TODOS LOS ARCHIVOS DEL GRUPO 8 EXPLICADOS UNO POR UNO          -->
+  <!-- ===================================================================== -->
+  <div id="tab3" class="tab-content space-y-6">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">3. Mapa Completo de los 33 Archivos del Proyecto del Grupo 8</h2>
+      <p class="text-sm text-[var(--muted-foreground)] mb-4">
+        Acá tenés absolutamente todos los archivos que existen dentro de `2026-08-TPI-main.zip`, agrupados por carpeta y con la explicación exacta de qué hace cada uno:
+      </p>
+
+      <div class="space-y-4 text-xs">
+        <!-- Raíz -->
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-blue-500 mb-2">📁 Archivos en la Raíz del Proyecto (`/`)</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">package.json</code>: Define el nombre `m9-reservas-viajes`, scripts (`build`, `start`, `dev`, `test`) y las dependencias (`express`, `pg`, `jsonwebtoken`, `zod`, `uuid`, `swagger-ui-express`, `yaml`, `cors`, `dotenv`).
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">tsconfig.json</code>: Configura el compilador de TypeScript (`target: ES2022`, `module: commonjs`, `rootDir: ./src`, `outDir: ./dist`, `strict: true`).
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">jest.config.js</code>: Configura Jest con `ts-jest` para ejecutar pruebas `.test.ts` dentro de la carpeta `tests/`.
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">Dockerfile</code>: Imagen Docker en 2 etapas (`node:24-alpine`). Etapa 1 compila TS a JS; Etapa 2 instala solo dependencias de producción y corre `node dist/index.js` en el puerto `8089`.
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">docker-compose.yml</code>: Levanta 2 servicios: `db` (PostgreSQL 16 en puerto 5432 montando `01_init_schema.sql`) y `m9-reservas` (en puerto 8089).
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">openapi.yaml</code>: Contrato OpenAPI 3.0.3 de 697 líneas con todos los endpoints, parámetros, esquemas y errores RFC 7807.
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">.env.example</code> y <code class="font-bold text-rose-500">.env</code>: Variables de entorno de ejemplo y archivo local (Nota: el `.env` debe borrarse antes de entregar para cumplir RNF-06).
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">README.md</code>: Documentación de puesta en marcha, listado de endpoints, cómo correr tests y cómo generar un token JWT de prueba.
+            </div>
+          </div>
+        </div>
+
+        <!-- src/ y config/ -->
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-emerald-500 mb-2">📁 Entrada y Configuración (`src/` y `src/config/`)</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">src/index.ts</code>: Punto de entrada. Llama a `db.initDb()`, pone a escuchar el servidor HTTP en `config.port` (`8089`) y captura señales `SIGINT`/`SIGTERM` para cerrar conexiones limpiamente.
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">src/app.ts</code>: Crea la aplicación Express, registra `cors()`, `express.json()`, `requestIdMiddleware`, monta las rutas (`healthRoutes`, `docRoutes`, `/reservas`) y al final monta `notFoundHandler` y `errorHandler`.
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">src/config/env.ts</code>: Centraliza la lectura de `process.env` con valores por defecto seguros para desarrollo. Activa `useExternalMocks = true` automáticamente cuando `NODE_ENV === 'test'`.
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">src/config/database.ts</code>: Crea el `Pool` de conexiones de `pg` (PostgreSQL) y expone `db.query()`, `db.getClient()`, `db.initDb()` (lee y ejecuta `sql/01_init_schema.sql`) y `db.close()`.
+            </div>
+          </div>
+        </div>
+
+        <!-- src/types/ -->
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-purple-500 mb-2">📁 Tipos e Interfaces TypeScript (`src/types/`)</div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">src/types/auth.ts</code>: Define `UserRole` (`'CLIENTE' | 'CONDUCTOR' | 'OPERADOR' | 'SERVICIO'`), `JwtUserPayload` y extiende la interfaz `Express.Request` para agregar `req.user` y `req.id`.
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">src/types/problem.ts</code>: Define la estructura RFC 7807 (`ProblemDetails`) y la clase `AppError` que convierte cualquier título de error en una URI slugificada (`https://api.reservas.frre.utn.edu.ar/errors/...`).
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">src/types/reservation.ts</code>: Define todos los modelos de dominio: `TipoVehiculo`, `EstadoReserva`, `TipoEvento`, `Direccion`, `ReservaEntity` (formato tabla SQL), `ReservaDTO` (formato JSON API), `CrearReservaDTO`, `ModificarReservaDTO`, `HistorialEventoDTO` y `DespachoWebhookDTO`.
+            </div>
+          </div>
+        </div>
+
+        <!-- src/middlewares/, routes/, controllers/, services/, repositories/, clients/ -->
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-amber-500 mb-2">📁 Rutas, Controladores, Servicios, Repositorios y Clientes (`src/...`)</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">src/routes/healthRoutes.ts</code>, <code class="font-bold">docRoutes.ts</code> y <code class="font-bold">reservationRoutes.ts</code>: Definen los 10 endpoints y qué roles pueden entrar a cada uno.
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">src/controllers/healthController.ts</code>, <code class="font-bold">reservationController.ts</code> y <code class="font-bold">activationController.ts</code>: Validan `req.body` y `req.query` con esquemas Zod y llaman a la capa de servicios.
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">src/services/anticipationValidator.ts</code>, <code class="font-bold">reservationService.ts</code> y <code class="font-bold">activationService.ts</code>: Contienen toda la lógica de negocio, validaciones cruzadas y orquestación.
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]">
+              <code class="font-bold text-[var(--foreground)]">src/repositories/reservationRepository.ts</code>, <code class="font-bold">historyRepository.ts</code> e <code class="font-bold">idempotencyRepository.ts</code>: Consultas SQL parametrizadas (`$1, $2...` contra inyección SQL) + fallback en memoria.
+            </div>
+            <div class="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] md:col-span-2">
+              <code class="font-bold text-[var(--foreground)]">src/clients/httpClient.ts</code>, <code class="font-bold">serviceToken.ts</code>, <code class="font-bold">m2Client.ts</code>, <code class="font-bold">m4Client.ts</code>, <code class="font-bold">m5Client.ts</code>, <code class="font-bold">m7Client.ts</code> y <code class="font-bold">m8Client.ts</code>: Toda la comunicación saliente hacia los otros 5 módulos con timeout de 2s, reintento en GET, propagación de `X-Request-Id` y token JWT con rol `SERVICIO`.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 4: BASE DE DATOS SQL AL DETALLE                                   -->
+  <!-- ===================================================================== -->
+  <div id="tab4" class="tab-content space-y-6">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">4. Diseño de Base de Datos PostgreSQL (`sql/01_init_schema.sql`)</h2>
+      <p class="text-sm text-[var(--muted-foreground)] mb-4">
+        El esquema SQL que diseñó tu grupo utiliza la extensión `pgcrypto` (para `gen_random_uuid()`) y define <strong>3 tablas relacionales</strong> con restricciones `CHECK`, claves `UNIQUE` y 7 índices (`CREATE INDEX`) para acelerar las búsquedas:
+      </p>
+
+      <!-- Tabla 1: reservas -->
+      <h3 class="text-sm font-bold text-blue-500 mb-2">Tabla 1: `reservas` (24 columnas)</h3>
+      <div class="overflow-x-auto border border-[var(--border)] rounded-xl mb-6">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-[var(--background)] border-b border-[var(--border)] text-[var(--muted-foreground)]">
+              <th class="p-2.5">Columna SQL</th>
+              <th class="p-2.5">Tipo de Dato</th>
+              <th class="p-2.5">Restricciones</th>
+              <th class="p-2.5">Propiedad en JSON (`ReservaDTO`)</th>
+              <th class="p-2.5">Para qué sirve</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border)]">
+            <tr>
+              <td class="p-2.5 font-mono font-bold">id</td>
+              <td class="p-2.5 font-mono">UUID</td>
+              <td class="p-2.5"><code>PRIMARY KEY DEFAULT gen_random_uuid()</code></td>
+              <td class="p-2.5 font-mono">id</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Identificador único de la reserva en M9.</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">clave_idempotencia</td>
+              <td class="p-2.5 font-mono">VARCHAR(255)</td>
+              <td class="p-2.5"><code>UNIQUE NOT NULL</code></td>
+              <td class="p-2.5 font-mono">claveIdempotencia</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Garantiza a nivel base de datos que nunca se inserten dos reservas con la misma clave de idempotencia.</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">cliente_id</td>
+              <td class="p-2.5 font-mono">VARCHAR(64)</td>
+              <td class="p-2.5"><code>NOT NULL</code> (Indexado)</td>
+              <td class="p-2.5 font-mono">clienteId</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">ID del cliente dueño de la reserva (coincide con el `sub` del JWT del cliente).</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">origen_direccion, origen_latitud, origen_longitud, origen_alias, origen_piso, origen_indicaciones</td>
+              <td class="p-2.5 font-mono">TEXT / DOUBLE PRECISION / VARCHAR</td>
+              <td class="p-2.5">Dirección, lat y lon `NOT NULL`; alias, piso e indicaciones opcionales.</td>
+              <td class="p-2.5 font-mono">origen: { direccion, latitud, longitud, alias, piso, indicaciones }</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Datos completos del punto de partida (desnormalizados para no depender de IDs internos de M4, cumpliendo RF-2.2/RNF-05).</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">destino_direccion, destino_latitud, destino_longitud, destino_alias, destino_piso, destino_indicaciones</td>
+              <td class="p-2.5 font-mono">TEXT / DOUBLE PRECISION / VARCHAR</td>
+              <td class="p-2.5">Dirección, lat y lon `NOT NULL`; resto opcional.</td>
+              <td class="p-2.5 font-mono">destino: { direccion, latitud, longitud, alias, piso, indicaciones }</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Datos completos del punto de llegada.</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">tipo_vehiculo</td>
+              <td class="p-2.5 font-mono">VARCHAR(10)</td>
+              <td class="p-2.5"><code>NOT NULL CHECK (IN ('AUTO', 'MOTO'))</code></td>
+              <td class="p-2.5 font-mono">tipoVehiculo</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Tipo de servicio solicitado.</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">fecha_hora / zona_horaria</td>
+              <td class="p-2.5 font-mono">TIMESTAMPTZ / VARCHAR(100)</td>
+              <td class="p-2.5"><code>NOT NULL</code> (`fecha_hora` indexada)</td>
+              <td class="p-2.5 font-mono">fechaHora / zonaHoraria</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Momento exacto para el cual se programa el viaje e identificador IANA (ej. `America/Argentina/Buenos_Aires`).</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">estado</td>
+              <td class="p-2.5 font-mono">VARCHAR(20)</td>
+              <td class="p-2.5"><code>CHECK (IN ('PENDIENTE', 'CONFIRMADA', 'ACTIVADA', 'CANCELADA', 'VENCIDA'))</code></td>
+              <td class="p-2.5 font-mono">estado</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Estado actual del ciclo de vida (Indexado).</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">tarifa_estimada / moneda / condiciones_tarifa</td>
+              <td class="p-2.5 font-mono">NUMERIC(10,2) / VARCHAR(5) / TEXT</td>
+              <td class="p-2.5">Moneda default `'ARS'`</td>
+              <td class="p-2.5 font-mono">tarifaEstimada / moneda / condicionesTarifa</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Cotización devuelta por el Módulo 7 (RF-9.4).</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">solicitud_despacho_id</td>
+              <td class="p-2.5 font-mono">VARCHAR(100)</td>
+              <td class="p-2.5"><code>UNIQUE</code> (Indexado)</td>
+              <td class="p-2.5 font-mono">solicitudDespachoId</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">ID de la solicitud creada en M5 cuando se activa la reserva (RF-9.9 / RF-9.10).</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">motivo_cancelacion</td>
+              <td class="p-2.5 font-mono">TEXT</td>
+              <td class="p-2.5">Nullable</td>
+              <td class="p-2.5 font-mono">motivoCancelacion</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Razón indicada al cancelar la reserva (RF-9.7).</td>
+            </tr>
+            <tr>
+              <td class="p-2.5 font-mono font-bold">creado_en / actualizado_en</td>
+              <td class="p-2.5 font-mono">TIMESTAMPTZ</td>
+              <td class="p-2.5"><code>NOT NULL DEFAULT NOW()</code></td>
+              <td class="p-2.5 font-mono">creadoEn / actualizadoEn</td>
+              <td class="p-2.5 text-[var(--muted-foreground)]">Marcas de tiempo de creación y última modificación.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tablas 2 y 3 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <h3 class="font-bold text-sm text-emerald-500 mb-2">Tabla 2: `historial_reservas` (Auditoría RF-9.12)</h3>
+          <ul class="space-y-1.5 text-[var(--muted-foreground)] list-disc pl-4">
+            <li><code>id</code> (UUID PK)</li>
+            <li><code>reserva_id</code> (UUID FK -> `reservas(id) ON DELETE CASCADE`, indexado)</li>
+            <li><code>tipo_evento</code> (`VARCHAR(50)`: `RESERVA_CREADA`, `RESERVA_MODIFICADA`, `RESERVA_CANCELADA`, `RESERVA_ACTIVADA`, `RESERVA_VENCIDA`, `RESERVA_RECORDATORIO`)</li>
+            <li><code>estado_anterior</code> (`VARCHAR(20)`, nullable) y <code>estado_nuevo</code> (`VARCHAR(20) NOT NULL`)</li>
+            <li><code>actor</code> (`VARCHAR(100)`: el `sub` del JWT o `'M5_DESPACHO'`)</li>
+            <li><code>detalles</code> (`JSONB`: guarda tarifa, distancia, cambios hechos o ID de solicitud M5)</li>
+            <li><code>fecha_hora</code> (`TIMESTAMPTZ DEFAULT NOW()`, indexado)</li>
+          </ul>
+        </div>
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <h3 class="font-bold text-sm text-purple-500 mb-2">Tabla 3: `registro_idempotencia` (RNF-09 / RF-9.10)</h3>
+          <ul class="space-y-1.5 text-[var(--muted-foreground)] list-disc pl-4">
+            <li><code>clave</code> (`VARCHAR(255) PRIMARY KEY`): La `claveIdempotencia` o header `Idempotency-Key`.</li>
+            <li><code>ruta</code> (`VARCHAR(255) NOT NULL`): Ej. `'/reservas'`.</li>
+            <li><code>codigo_estado</code> (`INT NOT NULL`): Ej. `201`.</li>
+            <li><code>cuerpo_respuesta</code> (`JSONB NOT NULL`): El JSON completo de la `ReservaDTO` que se devolvió la primera vez.</li>
+            <li><code>creado_en</code> (`TIMESTAMPTZ DEFAULT NOW()`, indexado).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 5: LOS 10 ENDPOINTS CON EJEMPLOS DE REQUEST Y RESPONSE JSON       -->
+  <!-- ===================================================================== -->
+  <div id="tab5" class="tab-content space-y-6">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">5. Guía Completa de los 10 Endpoints de M9 con Ejemplos JSON</h2>
+      <p class="text-sm text-[var(--muted-foreground)] mb-4">
+        Acá podés ver exactamente qué recibe y qué devuelve cada endpoint que programó tu grupo en el puerto `8089`:
+      </p>
+
+      <div class="space-y-4">
+        <!-- Endpoint 1: POST /reservas -->
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2">
+              <span class="badge bg-blue-500 text-white">POST</span>
+              <code class="font-bold text-sm">/reservas</code>
+            </div>
+            <span class="text-xs text-[var(--muted-foreground)]">Roles: <code>CLIENTE</code>, <code>OPERADOR</code>, <code>SERVICIO</code> · Respuestas: <code>201</code>, <code>200</code> (idempotente), <code>400</code>, <code>401</code>, <code>403</code>, <code>422</code>, <code>503</code></span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+            <div>
+              <div class="text-xs font-semibold text-[var(--muted-foreground)] mb-1">Request Body (JSON):</div>
+              <pre class="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">{
+  "claveIdempotencia": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "clienteId": "cliente-test-001",
+  "origen": {
+    "direccion": "Av. Sarmiento 1500",
+    "latitud": -27.4606,
+    "longitud": -58.9839,
+    "alias": "Casa",
+    "piso": "2B",
+    "indicaciones": "Portón negro"
+  },
+  "destino": {
+    "direccion": "Av. 25 de Mayo 800",
+    "latitud": -27.4512,
+    "longitud": -58.9867
+  },
+  "tipoVehiculo": "AUTO",
+  "fechaHora": "2026-10-31T18:30:00-03:00",
+  "zonaHoraria": "America/Argentina/Buenos_Aires"
+}</pre>
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-[var(--muted-foreground)] mb-1">Response `201 Created` (o `200 OK` si se repite la clave):</div>
+              <pre class="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">{
+  "id": "01929b1c-6f2a-7c3e-9a41-5d8e2f7b0c13",
+  "claveIdempotencia": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "clienteId": "cliente-test-001",
+  "origen": { "direccion": "Av. Sarmiento 1500", "latitud": -27.4606, "longitud": -58.9839, "alias": "Casa", "piso": "2B", "indicaciones": "Portón negro" },
+  "destino": { "direccion": "Av. 25 de Mayo 800", "latitud": -27.4512, "longitud": -58.9867, "alias": null, "piso": null, "indicaciones": null },
+  "tipoVehiculo": "AUTO",
+  "fechaHora": "2026-10-31T21:30:00.000Z",
+  "zonaHoraria": "America/Argentina/Buenos_Aires",
+  "estado": "CONFIRMADA",
+  "tarifaEstimada": 2182,
+  "moneda": "ARS",
+  "condicionesTarifa": "Tarifa sujeta a demoras de tráfico y variaciones climáticas.",
+  "solicitudDespachoId": null,
+  "motivoCancelacion": null,
+  "creadoEn": "2026-10-31T01:00:00.000Z",
+  "actualizadoEn": "2026-10-31T01:00:00.000Z"
+}</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Endpoints 2, 3, 4: Consultas y Modificación -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="badge bg-emerald-500 text-white">GET</span>
+              <code class="font-bold text-sm">/reservas?clienteId=...</code>
+              <span class="text-xs text-[var(--muted-foreground)]">y</span>
+              <code class="font-bold text-sm">/reservas/:id</code>
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)] mb-2">
+              • <code>GET /reservas?clienteId=X</code>: Devuelve un array `[ Reserva, ... ]` ordenado por fecha descendente. Si un `CLIENTE` pide el `clienteId` de otra persona, devuelve `403`.<br>
+              • <code>GET /reservas/:id</code>: Devuelve el objeto `Reserva` o `404` si no existe.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="badge bg-amber-500 text-white">PATCH</span>
+              <code class="font-bold text-sm">/reservas/:id</code>
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)] mb-2">
+              Recibe cualquier combinación opcional de <code>{ origen, destino, tipoVehiculo, fechaHora, zonaHoraria }</code>. Si la reserva sigue `PENDIENTE` o `CONFIRMADA` y no tiene `solicitudDespachoId`, revalida la fecha, recalcula distancia en M4 y tarifa en M7, actualiza la fila, agrega `RESERVA_MODIFICADA` al historial y devuelve `200 OK`.
+            </p>
+          </div>
+        </div>
+
+        <!-- Endpoints 5, 6, 7: Cancelar, Activar y Webhook Despacho -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="badge bg-rose-500 text-white">POST</span>
+              <code class="font-bold text-sm">/reservas/:id/cancelar</code>
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)] mb-2">Roles: `CLIENTE`, `OPERADOR`, `SERVICIO`.</p>
+            <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)]">{ "motivo": "Cambio de planes" }</pre>
+            <p class="text-xs text-[var(--muted-foreground)] mt-2">Pasa `estado` a `"CANCELADA"`, guarda `motivoCancelacion`, registra en historial y avisa a M8.</p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="badge bg-purple-500 text-white">POST</span>
+              <code class="font-bold text-sm">/reservas/:id/activar</code>
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)] mb-2">Roles: <strong>Solo `OPERADOR` y `SERVICIO`</strong> (`CLIENTE` recibe `403`).</p>
+            <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)]">{
+  "reservaId": "01929b1c...",
+  "solicitudId": "sol-m5-01929b1c",
+  "estado": "CONFIRMADA",
+  "mensaje": "Solicitud de despacho enviada..."
+}</pre>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="badge bg-purple-500 text-white">POST</span>
+              <code class="font-bold text-sm">/reservas/:id/despacho</code>
+            </div>
+            <p class="text-xs text-[var(--muted-foreground)] mb-2">Roles: <strong>Solo `SERVICIO` (Webhook desde M5)</strong>.</p>
+            <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)]">{
+  "solicitud_id": "sol-m5-01929b1c",
+  "resultado": "CONFIRMADA", // o "VENCIDA"
+  "fecha": "2026-10-31T18:20:00-03:00"
+}</pre>
+            <p class="text-xs text-[var(--muted-foreground)] mt-2">Cambia el estado de la reserva a `ACTIVADA` (si fue `CONFIRMADA`) o a `VENCIDA` (si fue `VENCIDA`).</p>
+          </div>
+        </div>
+
+        <!-- Endpoints 8, 9, 10: Historial, Health y Docs -->
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="flex flex-wrap items-center gap-4 text-xs">
+            <div><span class="badge bg-emerald-500 text-white mr-1">GET</span><code>/reservas/:id/historial</code> → Devuelve el array cronológico de `HistorialEvento` (`id`, `reservaId`, `tipoEvento`, `estadoAnterior`, `estadoNuevo`, `actor`, `detalles`, `fechaHora`).</div>
+            <div><span class="badge bg-emerald-500 text-white mr-1">GET</span><code>/health</code> → Devuelve `{ "status": "UP", "timestamp": "...", "database": "connected" }`.</div>
+            <div><span class="badge bg-emerald-500 text-white mr-1">GET</span><code>/docs</code> y <code>/openapi.yaml</code> → Swagger UI interactivo y contrato YAML.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 6: INTEGRACIÓN CON M2, M4, M5, M7 Y M8                            -->
+  <!-- ===================================================================== -->
+  <div id="tab6" class="tab-content space-y-6">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">6. Cómo se comunica el código de tu grupo con los otros 5 Módulos</h2>
+      <p class="text-sm text-[var(--muted-foreground)] mb-4">
+        Cuando M9 necesita hablar con M2, M4, M5, M7 o M8, usa `HttpClient` (`src/clients/httpClient.ts`), firmando un token propio con `getServiceToken()` (`sub: "m9-reservas"`, `roles: ["SERVICIO"]`) y propagando `X-Request-Id`. Acá tenés el contrato exacto que usa cada cliente y cómo funciona su modo Mock:
+      </p>
+
+      <div class="overflow-x-auto border border-[var(--border)] rounded-xl">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-[var(--background)] border-b border-[var(--border)] text-[var(--muted-foreground)]">
+              <th class="p-3">Módulo Destino</th>
+              <th class="p-3">Archivo Cliente</th>
+              <th class="p-3">Llamada HTTP que hace M9</th>
+              <th class="p-3">Qué envía / Qué espera recibir</th>
+              <th class="p-3">Cómo funciona el Mock de tu grupo</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--border)]">
+            <tr>
+              <td class="p-3 font-bold text-blue-500">M2 · Clientes</td>
+              <td class="p-3 font-mono">m2Client.ts</td>
+              <td class="p-3 font-mono">GET :8082/api/v1/clientes/{id}/estado-cuenta</td>
+              <td class="p-3 text-[var(--muted-foreground)]">Espera `{ cliente_id, estado: "ACTIVO" | "BLOQUEADO" }`. Si M2 responde `404`, M9 lanza `404 Cliente no encontrado`.</td>
+              <td class="p-3 text-[var(--muted-foreground)]">Si `clienteId.includes('bloqueado')` devuelve `BLOQUEADO`; en cualquier otro caso devuelve `ACTIVO`.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-emerald-500">M4 · Ubicación</td>
+              <td class="p-3 font-mono">m4Client.ts</td>
+              <td class="p-3 font-mono">POST :8084/api/v1/ubicaciones/validar-estimar</td>
+              <td class="p-3 text-[var(--muted-foreground)]">Envía `{ origen, destino, tipo_vehiculo, fecha_hora }`. Espera `{ origen_valido, destino_valido, motivo, distancia_km, tiempo_estimado_min }`.</td>
+              <td class="p-3 text-[var(--muted-foreground)]">Si `latitud > 0` devuelve `FUERA_DE_COBERTURA`. Si `latitud <= 0` calcula distancia en km por Pitágoras y estima `distanciaKm * 2.5` minutos.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-purple-500">M7 · Tarifas</td>
+              <td class="p-3 font-mono">m7Client.ts</td>
+              <td class="p-3 font-mono">POST :8087/api/v1/tarifas/estimar</td>
+              <td class="p-3 text-[var(--muted-foreground)]">Envía `{ distancia_km, tiempo_estimado_min, tipo_vehiculo, fecha_hora }`. Espera `{ tarifa_estimada, moneda, condiciones }`.</td>
+              <td class="p-3 text-[var(--muted-foreground)]">Para `AUTO`: `1500 + 400*km + 50*min`. Para `MOTO`: `900 + 250*km + 30*min`. Moneda `ARS`.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-amber-500">M5 · Despacho</td>
+              <td class="p-3 font-mono">m5Client.ts</td>
+              <td class="p-3 font-mono">POST :8085/api/v1/solicitudes<br><span class="text-[11px] text-purple-500">Header: Idempotency-Key</span></td>
+              <td class="p-3 text-[var(--muted-foreground)]">Envía `{ reserva_id, cliente_id, origen, destino, tipo_vehiculo, fecha_hora, zona_horaria, tarifa_estimada }`. Espera `{ solicitud_id }`.</td>
+              <td class="p-3 text-[var(--muted-foreground)]">Devuelve `{ solicitud_id: "sol-m5-" + reserva_id.substring(0, 8) }`.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-bold text-rose-500">M8 · Notificaciones</td>
+              <td class="p-3 font-mono">m8Client.ts</td>
+              <td class="p-3 font-mono">POST :8088/api/v1/notificaciones/eventos</td>
+              <td class="p-3 text-[var(--muted-foreground)]">Envía `{ tipo_evento, reserva_id, cliente_id, fecha_hora, zona_horaria, origen_direccion, destino_direccion, tipo_vehiculo, tarifa_estimada, ocurrido_en }`.</td>
+              <td class="p-3 text-[var(--muted-foreground)]">Imprime en consola `[M8Client Mock] Notificación enviada...`. Si falla en modo real, atrapa el error y la reserva sigue su curso.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 7: LOS 35 TESTS EXPLICADOS UNO POR UNO                            -->
+  <!-- ===================================================================== -->
+  <div id="tab7" class="tab-content space-y-6">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">7. Desglose de las 5 Suites de Pruebas Automatizadas (35 Tests en Total)</h2>
+      <p class="text-sm text-[var(--muted-foreground)] mb-4">
+        Cuando corrés <code>npm test</code>, Jest ejecuta 5 archivos de prueba que verifican cada requerimiento. Conocer qué prueban te sirve para responder cualquier pregunta sobre calidad y testing (RNF-07):
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-blue-500 mb-2">1. `tests/unit/anticipationValidator.test.ts` (5 tests)</div>
+          <ol class="list-decimal pl-4 space-y-1 text-[var(--muted-foreground)]">
+            <li>Rechaza una fecha en el pasado (hace 1 hora) con `AppError`.</li>
+            <li>Rechaza una reserva con menos de 30 minutos de anticipación (dentro de 15 min).</li>
+            <li>Rechaza una reserva con más de 30 días de anticipación (dentro de 35 días).</li>
+            <li>Acepta una fecha válida con 2 horas de anticipación y zona `America/Argentina/Buenos_Aires`.</li>
+            <li>Rechaza una zona horaria inventada (`Zona/Invalida_Falsa`).</li>
+          </ol>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-blue-500 mb-2">2. `tests/unit/reservationValidation.test.ts` (4 tests)</div>
+          <ol class="list-decimal pl-4 space-y-1 text-[var(--muted-foreground)]">
+            <li>Valida que un payload completo de creación pase el esquema Zod.</li>
+            <li>Rechaza un tipo de vehículo no admitido (`BICICLETA`).</li>
+            <li>Rechaza coordenadas fuera de rango geográfico (`latitud: 95.0`).</li>
+            <li>Rechaza motivo de cancelación de 2 letras (`"ab"`) y acepta uno de 3 (`"abc"`).</li>
+          </ol>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-emerald-500 mb-2">3. `tests/integration/health.test.ts` (4 tests)</div>
+          <ol class="list-decimal pl-4 space-y-1 text-[var(--muted-foreground)]">
+            <li>`GET /health` responde 200 o 503 e incluye el header `X-Request-Id`.</li>
+            <li>`GET /docs/` responde con la interfaz de Swagger UI.</li>
+            <li>`GET /openapi.yaml` devuelve el archivo YAML del contrato.</li>
+            <li>Una ruta inexistente (`/ruta-inexistente-xyz`) devuelve `404` con `Content-Type: application/problem+json`.</li>
+          </ol>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-purple-500 mb-2">4. `tests/integration/activationAndWebhook.test.ts` (9 tests)</div>
+          <ol class="list-decimal pl-4 space-y-1 text-[var(--muted-foreground)]">
+            <li>Rechaza `POST /reservas/:id/activar` si lo invoca un `CLIENTE` (`403`).</li>
+            <li>Activa reserva con rol `OPERADOR` y devuelve `solicitudId` (`200`).</li>
+            <li>Reactivar la misma reserva por segunda vez es idempotente (`200`).</li>
+            <li>Rechaza el webhook `POST /reservas/:id/despacho` si no tiene rol `SERVICIO` (`403`).</li>
+            <li>Webhook con `resultado: CONFIRMADA` pasa la reserva a estado `ACTIVADA` (`200`).</li>
+            <li>Repetir el mismo webhook `CONFIRMADA` es idempotente (`200`).</li>
+            <li>Webhook con `resultado: VENCIDA` pasa la segunda reserva a estado `VENCIDA` (`200`).</li>
+            <li>Verifica que el estado `VENCIDA` haya quedado persistido al hacer `GET /reservas/:id`.</li>
+            <li>Verifica en `GET /reservas/:id/historial` que estén registrados `RESERVA_ACTIVADA` y `RESERVA_VENCIDA`.</li>
+          </ol>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] md:col-span-2">
+          <div class="font-bold text-sm text-amber-500 mb-2">5. `tests/integration/reservationLifecycle.test.ts` (13 tests)</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <ol class="list-decimal pl-4 space-y-1 text-[var(--muted-foreground)]">
+              <li>Rechaza `POST /reservas` sin token JWT (`401`).</li>
+              <li>Rechaza `POST /reservas` si el `CLIENTE` intenta crearle una reserva a otro `clienteId` (`403`).</li>
+              <li>Rechaza `POST /reservas` si el cliente está bloqueado en M2 (`422 Cliente bloqueado`).</li>
+              <li>Rechaza `POST /reservas` si la ubicación está fuera de cobertura en M4 (`422 Ubicación no válida`).</li>
+              <li>Crea reserva exitosamente en estado `CONFIRMADA` con tarifa estimada en `ARS` y propaga `X-Request-Id` (`201`).</li>
+              <li>Reenviar la misma `claveIdempotencia` devuelve `200` y el mismo `id` de reserva sin duplicarla.</li>
+              <li>Lista las reservas del cliente con `GET /reservas?clienteId=...` (`200`).</li>
+            </ol>
+            <ol start="8" class="list-decimal pl-4 space-y-1 text-[var(--muted-foreground)]">
+              <li>Consulta el detalle por ID con `GET /reservas/:id` (`200`).</li>
+              <li>Modifica la reserva activa (`PATCH /reservas/:id`) cambiando a `MOTO` y nueva fecha, recalculando tarifa (`200`).</li>
+              <li>Rechaza cancelación con motivo menor a 3 caracteres (`400`).</li>
+              <li>Cancela la reserva activa con motivo válido y verifica que pase a `CANCELADA` (`200`).</li>
+              <li>Rechaza con `409 Conflict` intentar hacer `PATCH` o volver a cancelar una reserva que ya está `CANCELADA`.</li>
+              <li>Consulta `GET /reservas/:id/historial` y comprueba que estén los 3 eventos (`RESERVA_CREADA`, `RESERVA_MODIFICADA`, `RESERVA_CANCELADA`).</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 8: QUÉ FALTA HACER Y MEJORAR (CON EJEMPLOS DE CÓDIGO)             -->
+  <!-- ===================================================================== -->
+  <div id="tab8" class="tab-content space-y-6">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">8. Guía Exacta de Todo lo que Falta Hacer, Corregir y Mejorar</h2>
+      <p class="text-sm text-[var(--muted-foreground)] mb-4">
+        Para que vos y tu grupo sepan exactamente qué tocar en el código y por qué, acá tenés los <strong>10 puntos pendientes</strong> explicados con el problema actual y cómo solucionarlo:
+      </p>
+
+      <div class="space-y-5 text-xs">
+
+        <!-- Punto 1 -->
+        <div class="p-4 rounded-xl border border-rose-500/30 bg-rose-500/5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <h3 class="font-bold text-sm text-rose-500">1. Publicar el Contrato en `2026-TPI-main/contratos/m9_reservas/openapi.yml` y pasarlo a OpenAPI 3.1.0</h3>
+            <span class="badge bg-rose-500/20 text-rose-500">Obligatorio Actividad 1 / RNF-03</span>
+          </div>
+          <p class="text-[var(--muted-foreground)] mb-2">
+            <strong>¿Qué pasa hoy?</strong> En el repositorio de la cátedra (`2026-TPI-main/contratos/m9_reservas/openapi.yml`) hay solo 6 líneas vacías. Tu grupo hizo el contrato en `openapi.yaml` dentro de su propio ZIP, pero en versión `3.0.3` (usando `nullable: true`).<br>
+            <strong>¿Qué hay que hacer?</strong> Cambiar `openapi: 3.0.3` a `openapi: 3.1.0`, reemplazar `nullable: true` por `type: [string, "null"]` (estándar 3.1), agregar los esquemas del catálogo de eventos emitidos hacia M8 y copiarlo a `contratos/m9_reservas/openapi.yml` en coordinación con el Grupo 9.
+          </p>
+        </div>
+
+        <!-- Punto 2 -->
+        <div class="p-4 rounded-xl border border-rose-500/30 bg-rose-500/5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <h3 class="font-bold text-sm text-rose-500">2. Corregir el Fallback Silencioso en `m2Client`, `m4Client`, `m5Client` y `m7Client` (Error `503`)</h3>
+            <span class="badge bg-rose-500/20 text-rose-500">RNF-13 / Regla de Dominio</span>
+          </div>
+          <p class="text-[var(--muted-foreground)] mb-2">
+            <strong>¿Qué pasa hoy?</strong> Si ponés `USE_EXTERNAL_MOCKS=false` (modo producción/integración real) y el servidor de M2, M4, M5 o M7 está apagado o da timeout tras los 2 segundos, el bloque `catch` de los clientes atrapa el error y <strong>devuelve datos falsos del mock en lugar de responder `503 Service Unavailable`</strong>.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <div class="font-semibold text-rose-500 mb-1">❌ Cómo está hoy (ej. `src/clients/m4Client.ts`):</div>
+              <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)]">catch (err: unknown) {
+  console.warn(`[M4Client] Error... Usando fallback mock.`);
+  return this.mockValidarYEstimar(data);
+}</pre>
+            </div>
+            <div>
+              <div class="font-semibold text-emerald-500 mb-1">✅ Cómo debe quedar:</div>
+              <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)]">catch (err: unknown) {
+  throw new AppError({
+    status: 503,
+    title: 'Servicio de Ubicación (M4) no disponible',
+    detail: `No se pudo validar la ruta en M4: ${(err as Error).message}`
+  });
+}</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Punto 3 -->
+        <div class="p-4 rounded-xl border border-rose-500/30 bg-rose-500/5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <h3 class="font-bold text-sm text-rose-500">3. Arreglar el Bug de Autorización del Rol `CONDUCTOR` en `GET /reservas/:id`</h3>
+            <span class="badge bg-rose-500/20 text-rose-500">Bug en `reservationService.ts`</span>
+          </div>
+          <p class="text-[var(--muted-foreground)] mb-2">
+            <strong>¿Qué pasa hoy?</strong> En `reservationRoutes.ts` declararon que `GET /reservas/:id` acepta `['CLIENTE', 'CONDUCTOR', 'OPERADOR', 'SERVICIO']`. Pero en `ReservationService.obtenerPorId()` pusieron:
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <div class="font-semibold text-rose-500 mb-1">❌ Cómo está hoy (`reservationService.ts` línea 185):</div>
+              <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)]">const esAdmin = user.roles.includes('OPERADOR') || user.roles.includes('SERVICIO');
+if (!esAdmin && user.sub !== reserva.clienteId) {
+  throw new AppError({ status: 403, ... });
+}</pre>
+            </div>
+            <div>
+              <div class="font-semibold text-emerald-500 mb-1">✅ Cómo debe quedar:</div>
+              <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)]">const tieneAccesoAmplio =
+  user.roles.includes('OPERADOR') ||
+  user.roles.includes('SERVICIO') ||
+  user.roles.includes('CONDUCTOR');
+if (!tieneAccesoAmplio && user.sub !== reserva.clienteId) {
+  throw new AppError({ status: 403, ... });
+}</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Punto 4 -->
+        <div class="p-4 rounded-xl border border-rose-500/30 bg-rose-500/5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <h3 class="font-bold text-sm text-rose-500">4. Crear `.gitignore` y eliminar `.env`, `node_modules/` y `dist/` del repositorio</h3>
+            <span class="badge bg-rose-500/20 text-rose-500">RNF-06 Seguridad y Secretos</span>
+          </div>
+          <p class="text-[var(--muted-foreground)]">
+            <strong>¿Qué hay que hacer?</strong> Borrar el archivo `.env` (dejar solo `.env.example`), borrar las carpetas `node_modules/` y `dist/` antes de comprimir o pushear a Git, y agregar un archivo `.gitignore` en la raíz con `node_modules/`, `dist/`, `.env`, `coverage/` y `*.log`.
+          </p>
+        </div>
+
+        <!-- Punto 5 -->
+        <div class="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <h3 class="font-bold text-sm text-amber-500">5. Implementar RF-9.8: Recordatorios de Reserva hacia M8</h3>
+            <span class="badge bg-amber-500/20 text-amber-500">Requerimiento Funcional RF-9.8 y RF-9.12</span>
+          </div>
+          <p class="text-[var(--muted-foreground)]">
+            <strong>¿Qué pasa hoy?</strong> El tipo `'RESERVA_RECORDATORIO'` está declarado en `src/types/reservation.ts`, pero nunca se usa.<br>
+            <strong>¿Qué hay que hacer?</strong> Agregar un método `ReservationService.enviarRecordatorio(id, user, requestId)` y su ruta `POST /reservas/:id/recordatorio` (y/o tarea automática) que valide que la reserva esté `CONFIRMADA`, envíe el evento `RESERVA_RECORDATORIO` a `M8Client.notificarEvento()` y lo guarde en `HistoryRepository.registrar({ tipoEvento: 'RESERVA_RECORDATORIO', ... })`.
+          </p>
+        </div>
+
+        <!-- Punto 6 -->
+        <div class="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <h3 class="font-bold text-sm text-amber-500">6. Implementar Scheduler Automático de Activación y Recordatorios (RF-9.9)</h3>
+            <span class="badge bg-amber-500/20 text-amber-500">Requerimiento Funcional RF-9.9</span>
+          </div>
+          <p class="text-[var(--muted-foreground)]">
+            <strong>¿Qué pasa hoy?</strong> La reserva solo se envía a M5 si alguien llama a mano a `POST /reservas/:id/activar`.<br>
+            <strong>¿Qué hay que hacer?</strong> Crear un pequeño servicio `ReservationScheduler` que corra cada `X` segundos en background (cuando no estamos en tests), busque las reservas en estado `CONFIRMADA` cuya `fecha_hora` esté dentro de la ventana de despacho (ej. próximos 15 o 20 minutos) y sin `solicitud_despacho_id`, y llame automáticamente a `ActivationService.activarReserva()`.
+          </p>
+        </div>
+
+        <!-- Punto 7, 8, 9, 10 en grilla -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5">
+            <h3 class="font-bold text-sm text-amber-500 mb-1">7. Cargo por Cancelación Tardía con M7 (RF-9.7)</h3>
+            <p class="text-[var(--muted-foreground)]">En `cancelarReserva()`, verificar si faltan menos de X minutos para la `fechaHora` del viaje; si es una cancelación tardía, consultar/registrar el cargo de cancelación con `M7Client` y guardarlo en los detalles del historial y de la respuesta.</p>
+          </div>
+
+          <div class="p-4 rounded-xl border border-blue-500/30 bg-blue-500/5">
+            <h3 class="font-bold text-sm text-blue-500 mb-1">8. Validar Conflicto de Cuerpo en Idempotencia (`422`) y Concurrencia (`RNF-08`)</h3>
+            <p class="text-[var(--muted-foreground)]">Si envían un `POST /reservas` con una `claveIdempotencia` ya usada pero cambiando el `clienteId`, `origen`, `destino` o `fechaHora`, devolver `422 Unprocessable Content` (como especifica el contrato de M2). Además, hacer atómica la asignación de `solicitud_despacho_id` (`UPDATE ... WHERE id = $1 AND solicitud_despacho_id IS NULL`) para blindar concurrencia.</p>
+          </div>
+
+          <div class="p-4 rounded-xl border border-blue-500/30 bg-blue-500/5">
+            <h3 class="font-bold text-sm text-blue-500 mb-1">9. Compatibilidad del Cliente M2 con `contratos/m2_clientes/openapi.yml`</h3>
+            <p class="text-[var(--muted-foreground)]">Aceptar tanto `clienteId` (como está en el contrato oficial de M2 publicado por G1/G17) como `cliente_id` en la respuesta de `GET /api/v1/clientes/{clienteId}/estado-cuenta`.</p>
+          </div>
+
+          <div class="p-4 rounded-xl border border-blue-500/30 bg-blue-500/5">
+            <h3 class="font-bold text-sm text-blue-500 mb-1">10. Header `Location` en `201 Created` y Paginación Opcional</h3>
+            <p class="text-[var(--muted-foreground)]">Agregar `res.setHeader('Location', '/reservas/' + reserva.id)` al crear una reserva en `ReservationController.crear` (como piden las filminas `DS-04` pág. 13 y 15) y soportar `page` y `size` en el listado.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 9: PLAYWRIGHT & TESTS END-TO-END (E2E) MULTIPANTALLA             -->
+  <!-- ===================================================================== -->
+  <div id="tab9" class="tab-content space-y-6">
+
+    <!-- 9.1 ¿Qué es Playwright y qué es un test E2E? -->
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <h2 class="text-lg font-bold">9.1. ¿Qué es Playwright y en qué se diferencia de los tests que ya tienen?</h2>
+        <span class="badge bg-purple-500/15 text-purple-500 border border-purple-500/30">RNF-07 · Pruebas End-to-End (TP3)</span>
+      </div>
+      <p class="text-sm text-[var(--muted-foreground)] leading-relaxed mb-4">
+        Hasta ahora, los 35 tests que tiene tu grupo en <code>tests/</code> son <strong>tests de integración de backend con Supertest</strong>: le pegan directamente al servidor Express por código, sin abrir ningún navegador, sin clicks, sin botones ni pantallas.
+        <br><br>
+        <strong>Playwright</strong> es una herramienta moderna desarrollada por Microsoft para realizar <strong>pruebas End-to-End (E2E / de punta a punta)</strong>. Lo que hace Playwright es <strong>abrir un navegador web real</strong> (Chromium/Chrome, Firefox o WebKit/Safari) y controlar la pantalla automáticamente como si fuera un usuario real sentado frente a la computadora.
+      </p>
+
+      <!-- Comparativa Pirámide de Testing -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+        <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-blue-500 mb-1">1. Test Unitario (Jest)</div>
+          <div class="text-[var(--muted-foreground)] mb-2">Lo que ya tienen en <code>anticipationValidator.test.ts</code></div>
+          <p class="text-[var(--muted-foreground)]">Prueba una sola función o clase aislada en milisegundos. Ejemplo: verificar que si mandás una fecha de hace 1 hora, la función devuelva error sin tocar la base de datos ni la red.</p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-emerald-500 mb-1">2. Test de Integración API (Supertest)</div>
+          <div class="text-[var(--muted-foreground)] mb-2">Lo que ya tienen en <code>reservationLifecycle.test.ts</code></div>
+          <p class="text-[var(--muted-foreground)]">Prueba las rutas HTTP de Express y la base de datos completa, pero <strong>sin interfaz gráfica</strong>. Envía un JSON por código y verifica el código de estado (`201`, `422`, etc.).</p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/30">
+          <div class="font-bold text-purple-500 mb-1">3. Test End-to-End (Playwright)</div>
+          <div class="text-[var(--muted-foreground)] mb-2">Lo que pide el RNF-07 para la integración final</div>
+          <p class="text-[var(--muted-foreground)]">Abre la página web real, llena formularios, hace click en botones, espera las respuestas de red, verifica que la pantalla se actualice y simula la interacción completa entre varios roles y pantallas.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9.2 El Problema: Interactuar con la pantalla de los otros grupos -->
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">9.2. ¿Cómo interactuar con la pantalla de los otros grupos y verificar que la nuestra no se rompa?</h2>
+      <p class="text-sm text-[var(--muted-foreground)] leading-relaxed mb-4">
+        Cuando el curso avance hacia la integración de frontend (TP3 / RNF-15), va a existir una aplicación web donde los pasajeros reservan, los choferes aceptan viajes y los operadores monitorean. El gran peligro es: <strong>¿Qué pasa si la pantalla desarrollada por otro grupo manda un campo con otro nombre (ej. <code>fecha_hora</code> en vez de <code>fechaHora</code>), o si nuestro backend M9 devuelve un formato que rompe la vista de ellos?</strong>
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <h3 class="font-bold text-sm text-blue-500 mb-2">Técnica 1: Espiar y Validar el Tráfico de Red (`waitForResponse`)</h3>
+          <p class="text-[var(--muted-foreground)] leading-relaxed mb-2">
+            Playwright no solo mira lo que se ve en la pantalla; puede <strong>interceptar los paquetes HTTP que viajan entre el frontend del otro grupo y tu backend M9</strong>.
+          </p>
+          <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">// Espera a que el click del botón dispare la llamada a tu backend M9
+const responsePromise = page.waitForResponse(resp =>
+  resp.url().includes('/reservas') && resp.request().method() === 'POST'
+);
+
+// Click en el botón de la pantalla del otro grupo
+await page.click('button#btn-confirmar-reserva');
+
+const response = await responsePromise;
+// 1. Verificamos que la pantalla nos haya llamado con status 201
+expect(response.status()).toBe(201);
+
+// 2. Verificamos que el JSON que devolvió M9 tenga la estructura pactada
+const data = await response.json();
+expect(data.estado).toBe('CONFIRMADA');
+expect(data.tarifaEstimada).toBeGreaterThan(0);</pre>
+          <p class="text-[var(--muted-foreground)] mt-2">
+            Si la pantalla del otro grupo envió mal los datos, tu backend responderá `400` o `422` y Playwright te avisará exactamente qué falló en el contrato.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <h3 class="font-bold text-sm text-emerald-500 mb-2">Técnica 2: Simular Caídas o Respuestas de Otros Módulos (`page.route`)</h3>
+          <p class="text-[var(--muted-foreground)] leading-relaxed mb-2">
+            ¿Qué pasa si querés probar si tu pantalla muestra bien el mensaje de error cuando M2 está caído, sin tener que apagar el contenedor de M2? Playwright puede <strong>mockear rutas al vuelo</strong>:
+          </p>
+          <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">// Intercepta llamadas a M2 y simula que responde 503 Service Unavailable
+await page.route('**/api/v1/clientes/*/estado-cuenta', route => {
+  route.fulfill({
+    status: 503,
+    contentType: 'application/problem+json',
+    body: JSON.stringify({
+      type: 'https://api.reservas.frre.utn.edu.ar/errors/servicio-no-disponible',
+      title: 'M2 no disponible',
+      status: 503
+    })
+  });
+});
+
+// Ahora hacemos la reserva en la UI y verificamos que no explote
+await page.click('button#btn-confirmar-reserva');
+await expect(page.locator('.alerta-error')).toContainText('M2 no disponible');</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9.3 El Superpoder de Playwright: Multi-Contexto Simultáneo -->
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">9.3. La Característica Clave para este TPI: Múltiples Usuarios y Pantallas a la Vez</h2>
+      <p class="text-sm text-[var(--muted-foreground)] leading-relaxed mb-4">
+        En Selenium o Cypress es un dolor de cabeza probar dos usuarios a la vez porque comparten cookies. En cambio, <strong>Playwright permite crear múltiples contextos de navegador (`browser.newContext()`) en el mismo test</strong>: cada uno es como una ventana de incógnito totalmente separada, con su propia sesión, su propio token JWT y su propio rol.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-blue-500/30">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="step-circle bg-blue-500 text-white">A</span>
+            <span class="font-bold text-sm text-blue-500">Navegador del Pasajero (Cliente)</span>
+          </div>
+          <ul class="space-y-1.5 text-[var(--muted-foreground)] list-disc pl-4">
+            <li>Inicia sesión con token JWT rol `CLIENTE`.</li>
+            <li>Entra a la pantalla de reservas (`/reservas/nueva`).</li>
+            <li>Llena origen, destino, elige `AUTO` y fecha a futuro.</li>
+            <li>Hace click en "Confirmar Reserva" y ve el cartel verde con estado <code>CONFIRMADA</code> y el precio estimado.</li>
+          </ul>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-emerald-500/30">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="step-circle bg-emerald-500 text-white">B</span>
+            <span class="font-bold text-sm text-emerald-500">Navegador del Chofer o Despacho (M5 / Conductor)</span>
+          </div>
+          <ul class="space-y-1.5 text-[var(--muted-foreground)] list-disc pl-4">
+            <li>En la misma prueba, se abre otra ventana con rol `CONDUCTOR` o `OPERADOR`.</li>
+            <li>Simula la activación de la reserva en M5 y la aceptación de la oferta por parte del chofer.</li>
+            <li>Al procesarse el webhook en M9, se verifica que en la pantalla del <strong>Pasajero (Navegador A)</strong> el estado cambie automáticamente a <code>ACTIVADA</code> en tiempo real.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9.4 Código Completo de Ejemplo Playwright E2E -->
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-2">9.4. Ejemplo Real de Test E2E para M9 (`tests/e2e/reservaFlow.spec.ts`)</h2>
+      <p class="text-xs text-[var(--muted-foreground)] mb-3">
+        Este es el código exacto de cómo se escribe un test E2E en Playwright para validar la pantalla integrada con tu backend M9:
+      </p>
+
+      <pre class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)]">import { test, expect } from '@playwright/test';
+
+test.describe('E2E: Ciclo de Vida de Reserva entre Pasajero y Sistema (M9 + M5)', () => {
+
+  test('El cliente reserva en la UI, valida contrato con backend M9 y visualiza confirmación', async ({ browser }) => {
+    // -------------------------------------------------------------
+    // 1. Crear sesión aislada para el Pasajero (Cliente)
+    // -------------------------------------------------------------
+    const contextoCliente = await browser.newContext({
+      storageState: {
+        cookies: [],
+        origins: [{
+          origin: 'http://localhost:3000',
+          localStorage: [{ name: 'auth_token', value: 'JWT_CLIENTE_VALIDO' }]
+        }]
+      }
+    });
+
+    const pageCliente = await contextoCliente.newPage();
+
+    // 2. Navegar a la pantalla de creación de reservas
+    await pageCliente.goto('http://localhost:3000/reservas/nueva');
+
+    // 3. Completar el formulario en la pantalla
+    await pageCliente.fill('input[name="origen"]', 'Av. Sarmiento 1500');
+    await pageCliente.fill('input[name="destino"]', 'Av. 25 de Mayo 800');
+    await pageCliente.click('button#tipo-auto'); // Selecciona AUTO
+    await pageCliente.fill('input[name="fechaHora"]', '2026-11-02T18:30');
+
+    // 4. Espiar la petición de red que saldrá hacia tu backend M9 (:8089/reservas)
+    const requestPromise = pageCliente.waitForResponse(response =>
+      response.url().includes(':8089/reservas') && response.request().method() === 'POST'
+    );
+
+    // 5. El usuario hace click en el botón de reservar
+    await pageCliente.click('button[type="submit"]#btn-reservar');
+
+    // 6. Verificar que la llamada al backend M9 devolvió 201 Created y los datos correctos
+    const m9Response = await requestPromise;
+    expect(m9Response.status()).toBe(201);
+
+    const m9Data = await m9Response.json();
+    expect(m9Data.estado).toBe('CONFIRMADA');
+    expect(m9Data.tarifaEstimada).toBeGreaterThan(0);
+    const reservaId = m9Data.id;
+
+    // 7. Verificar que la PANTALLA no se rompió y muestra los datos en el DOM
+    const badgeEstado = pageCliente.locator('[data-testid="estado-reserva"]');
+    await expect(badgeEstado).toHaveText('CONFIRMADA');
+
+    const textoTarifa = pageCliente.locator('[data-testid="tarifa-estimada"]');
+    await expect(textoTarifa).toContainText('ARS');
+
+    // -------------------------------------------------------------
+    // 8. Abrir sesión para el Despacho / Chofer (Navegador B)
+    // -------------------------------------------------------------
+    const contextoServicio = await browser.newContext();
+    const requestContext = contextoServicio.request;
+
+    // Simular que M5 confirma asignación llamando al webhook de M9
+    const webhookRes = await requestContext.post(`http://localhost:8089/reservas/${reservaId}/despacho`, {
+      headers: {
+        Authorization: 'Bearer JWT_SERVICIO_M5',
+        'Content-Type': 'application/json'
+      },
+      data: {
+        solicitud_id: 'sol-m5-test-e2e',
+        resultado: 'CONFIRMADA',
+        fecha: new Date().toISOString()
+      }
+    });
+    expect(webhookRes.status()).toBe(200);
+
+    // 9. Verificar que la pantalla del Pasajero (Navegador A) cambió a ACTIVADA
+    // Playwright espera automáticamente (auto-waiting) a que el WebSocket o polling actualice la vista
+    await expect(badgeEstado).toHaveText('ACTIVADA', { timeout: 5000 });
+
+    await contextoCliente.close();
+    await contextoServicio.close();
+  });
+
+});</pre>
+    </div>
+
+    <!-- 9.5 Comandos de Consola y Herramientas -->
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-lg font-bold mb-3">9.5. Comandos de Consola y Herramientas Útiles de Playwright</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-blue-500 mb-2">Instalación y Configuración Inicial</div>
+          <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]"># Instalar Playwright en el proyecto
+npm install -D @playwright/test
+
+# Descargar los navegadores limpios (Chromium, Firefox, WebKit)
+npx playwright install --with-deps</pre>
+          <p class="text-[var(--muted-foreground)] mt-2">
+            Crea un archivo <code>playwright.config.ts</code> donde se define la URL base (`http://localhost:3000`), timeouts y si corre en varios navegadores.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-emerald-500 mb-2">Comandos de Ejecución y Debugging</div>
+          <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]"># 1. Correr todos los tests E2E en background
+npx playwright test
+
+# 2. Correr viendo el navegador abrirse y clickear en vivo
+npx playwright test --headed
+
+# 3. Modo Interactivo con interfaz gráfica (UI Mode, recomendadísimo)
+npx playwright test --ui
+
+# 4. Ver el reporte HTML visual con capturas y videos de fallos
+npx playwright show-report</pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      document.getElementById('btn-' + tabId).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+### Grupo 1: Teoría, Análisis Crítico y Documentación (Sol,Mili,Fabri,Agus,Giana)
+
+Alineado a los Criterios 1, 2 y 3 de la rúbrica (50 puntos) y al entregable del documento/presentación.
+
+* **Tarea 1.1: Fundamentos Conceptuales de los 2 Temas (2 personas)**
+* Investigar qué es cada concepto, qué problema resuelve, sus características clave, beneficios y limitaciones usando bibliografía técnica confiable.
+
+
+* Redactar las bases conceptuales para el documento y para la defensa.
+
+
+
+
+* **Tarea 1.2: Análisis Crítico y Criterios de Uso vs No Uso (2 personas)**
+* Analizar en qué escenarios conviene aplicar cada concepto y en cuáles no se recomienda.
+
+
+* Justificar las decisiones técnicas en base a complejidad, costos, rendimiento y mantenibilidad.
+
+
+* Definir alternativas tecnológicas frente a cada concepto.
+
+
+
+
+* **Tarea 1.3: Bajada al TPI y Casos de Uso (2 personas)**
+* Identificar exactamente cómo se aplican ambos temas en la plataforma de movilidad urbana (TPI).
+
+
+* Mapear los módulos, componentes o flujos concretos (por ejemplo: M4, M5, M7, etc.) donde estos conceptos aportan valor.
+
+
+
+
+* **Tarea 1.4: Redacción Final y Diapositivas para el Coloquio (1 o 2 personas de este mismo grupo)**
+* Unificar todo el contenido en el documento final o la presentación requerida.
+
+
+* Armar el soporte visual y conceptual para la defensa oral.
+
+
+
+
+
+---
+
+### Grupo 2: Implementación Práctica, Integración y Demo (Finoma)
+
+Alineado al Criterio 4 de la rúbrica (20 puntos) y al repositorio con la solución funcional.
+
+* **Tarea 2.1: Diseño del Escenario Integrador y Setup del Repo (2 personas)**
+* Diseñar el caso de uso práctico donde **ambos conceptos interactúen obligatoriamente** dentro del mismo flujo (no dos proyectos aislados).
+
+
+* Inicializar el repositorio Git con la arquitectura base, dependencias y Docker/entorno de ejecución si corresponde.
+
+
+
+
+* **Tarea 2.2: Desarrollo de la Solución Integrada (3 personas)**
+* Programar el componente del Tema A.
+* Programar el componente del Tema B.
+* Acoplar ambos temas para que la solución funcione de punta a punta demostrando el aporte de cada uno.
+
+
+
+
+* **Tarea 2.3: Pruebas, Evidencias Técnicas y README (2 personas)**
+* Generar datos de prueba y escribir tests o scripts para validar el funcionamiento.
+
+
+* Recolectar evidencias técnicas comprobables (logs estructurados, capturas de pantalla, métricas o trazas de ejecución).
+
+
+* Redactar el `README.md` con las instrucciones claras de instalación, configuración y ejecución paso a paso.
+
+
+
+
+* **Tarea 2.4: Preparación del Entorno para la Demostración en Vivo (1 o 2 personas de este mismo grupo)**
+* Asegurar que la demo corra de forma reproducible en local o contenedor sin romperse durante el coloquio.
+
+
+* Definir el paso a paso exacto que se mostrará frente a los docentes.
+
+
+
+
+
+---
+
+### Tarea Compartida Obligatoria: Defensa Técnica (Los 10 integrantes)
+
+Alineado al Criterio 5 de la rúbrica (30 puntos).
+
+* **Simulacro Cruzado previo al Coloquio:**
+* El Grupo de Implementación le explica línea por línea el código y la demo al Grupo de Teoría.
+
+
+* El Grupo de Teoría le explica los fundamentos, ventajas/desventajas y criterios de decisión al Grupo de Implementación.
+
+
+* La rúbrica aclara expresamente que no alcanza con mostrar código si no se puede fundamentar, ni presentar teoría sin entender el código, evaluando individualmente la comprensión de cada uno.

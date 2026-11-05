@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plan de Acción y Preparativos de Trabajo — Grupo 8 (M9)</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    .tab-btn.active {
+      background-color: var(--primary);
+      color: var(--primary-foreground);
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.55rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .step-circle {
+      width: 1.6rem;
+      height: 1.6rem;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    pre {
+      overflow-x: auto;
+      font-size: 0.75rem;
+      line-height: 1.45;
+    }
+    details > summary {
+      list-style: none;
+      cursor: pointer;
+    }
+    details > summary::-webkit-details-marker {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-4 md:p-6">
+
+  <!-- ==================== HEADER PRINCIPAL ==================== -->
+  <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 md:p-6 shadow-sm mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <span class="badge bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">UTN FRRe · Desarrollo de Software 2026</span>
+          <span class="badge bg-blue-500/15 text-blue-500 border border-blue-500/30">Grupo 8 · M9 (Reservas)</span>
+          <span class="badge bg-purple-500/15 text-purple-500 border border-purple-500/30">Guía de Ejecución Pre-Reunión</span>
+        </div>
+        <h1 class="text-xl md:text-2xl font-bold text-[var(--foreground)]">Plan de Acción y Hoja de Ruta para el Grupo</h1>
+        <p class="text-sm text-[var(--muted-foreground)] mt-1">
+          Guía técnica detallada paso a paso para llegar a la reunión con las ideas claras, dividir el trabajo y mejorar el proyecto de 0 a 100.
+        </p>
+      </div>
+
+      <!-- Barra de Progreso del Checklist -->
+      <div class="bg-[var(--background)] border border-[var(--border)] rounded-xl p-3.5 min-w-[240px]">
+        <div class="flex justify-between items-center text-xs mb-1.5">
+          <span class="font-semibold text-[var(--foreground)]">Progreso de Tareas</span>
+          <span id="progress-percent" class="font-bold text-emerald-500">0%</span>
+        </div>
+        <div class="w-full bg-[var(--border)] rounded-full h-2 overflow-hidden mb-1">
+          <div id="progress-bar" class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div class="text-[11px] text-[var(--muted-foreground)] text-right">
+          <span id="completed-count">0</span> de <span id="total-count">10</span> tareas completadas
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestañas de Navegación -->
+    <div class="flex flex-wrap gap-1.5 mt-6 pt-4 border-t border-[var(--border)]">
+      <button onclick="switchTab('tab-checklist')" id="btn-tab-checklist" class="tab-btn active px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        📋 1. Checklist Interactivo
+      </button>
+      <button onclick="switchTab('tab-git')" id="btn-tab-git" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        🧹 2. Limpieza Git & Setup
+      </button>
+      <button onclick="switchTab('tab-openapi')" id="btn-tab-openapi" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        📄 3. OpenAPI 3.1.0 & Contrato
+      </button>
+      <button onclick="switchTab('tab-bugs')" id="btn-tab-bugs" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        🐛 4. Corrección de Bugs Críticos
+      </button>
+      <button onclick="switchTab('tab-features')" id="btn-tab-features" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        ⚡ 5. Nuevas Funcionalidades (RF-9.8 / 9.9)
+      </button>
+      <button onclick="switchTab('tab-division')" id="btn-tab-division" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        👥 6. División de Tareas en el Grupo
+      </button>
+      <button onclick="switchTab('tab-playwright')" id="btn-tab-playwright" class="tab-btn px-3.5 py-2 rounded-xl text-xs transition-all border border-[var(--border)]">
+        🎭 7. Setup Playwright E2E
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 1: CHECKLIST INTERACTIVO (PERSISTENTE CON LOCALSTORAGE)           -->
+  <!-- ===================================================================== -->
+  <div id="tab-checklist" class="tab-content active space-y-4">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+        <div>
+          <h2 class="text-base font-bold text-[var(--foreground)]">Lista Maestra de Tareas para la Entrega</h2>
+          <p class="text-xs text-[var(--muted-foreground)]">Marcá las casillas a medida que vayan completando cada punto. El estado queda guardado en tu navegador.</p>
+        </div>
+        <button onclick="resetChecklist()" class="text-xs text-rose-500 hover:underline self-start sm:self-auto">Reiniciar checklist</button>
+      </div>
+
+      <div class="space-y-2.5 text-xs">
+        <!-- Item 1 -->
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] cursor-pointer hover:border-emerald-500/50 transition-colors">
+          <input type="checkbox" id="task-1" onchange="updateProgress()" class="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[var(--foreground)]">1. Crear `.gitignore` y limpiar archivos sensibles (RNF-06)</span>
+              <span class="badge bg-rose-500/15 text-rose-500">Prioridad Alta</span>
+            </div>
+            <p class="text-[var(--muted-foreground)] mt-0.5">Crear `.gitignore` en la raíz, eliminar `.env` del tracking de Git (dejar solo `.env.example`) y borrar `node_modules/` y `dist/` de los archivos subidos.</p>
+          </div>
+        </label>
+
+        <!-- Item 2 -->
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] cursor-pointer hover:border-emerald-500/50 transition-colors">
+          <input type="checkbox" id="task-2" onchange="updateProgress()" class="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[var(--foreground)]">2. Publicar Contrato en `2026-TPI-main/contratos/m9_reservas/openapi.yml` (RNF-03)</span>
+              <span class="badge bg-rose-500/15 text-rose-500">Prioridad Alta</span>
+            </div>
+            <p class="text-[var(--muted-foreground)] mt-0.5">Migrar `openapi.yaml` a OpenAPI 3.1.0 (reemplazar `nullable: true` por `type: [..., "null"]`), agregar el catálogo de eventos de M9 y copiarlo a la carpeta de contratos de la cátedra.</p>
+          </div>
+        </label>
+
+        <!-- Item 3 -->
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] cursor-pointer hover:border-emerald-500/50 transition-colors">
+          <input type="checkbox" id="task-3" onchange="updateProgress()" class="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[var(--foreground)]">3. Corregir Fallback silencioso de Clientes HTTP a Error `503` (RNF-13)</span>
+              <span class="badge bg-rose-500/15 text-rose-500">Bug Crítico</span>
+            </div>
+            <p class="text-[var(--muted-foreground)] mt-0.5">En `m2Client`, `m4Client`, `m5Client` y `m7Client`, cuando `USE_EXTERNAL_MOCKS=false` y hay caída o timeout, lanzar `AppError(503)` en lugar de simular datos falsos con mocks.</p>
+          </div>
+        </label>
+
+        <!-- Item 4 -->
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] cursor-pointer hover:border-emerald-500/50 transition-colors">
+          <input type="checkbox" id="task-4" onchange="updateProgress()" class="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[var(--foreground)]">4. Corregir Permiso del Rol `CONDUCTOR` en `GET /reservas/:id`</span>
+              <span class="badge bg-rose-500/15 text-rose-500">Bug de Seguridad</span>
+            </div>
+            <p class="text-[var(--muted-foreground)] mt-0.5">Permitir que el rol `CONDUCTOR` pueda leer el detalle de la reserva en `ReservationService.obtenerPorId()` sin recibir un `403 Forbidden` injustificado.</p>
+          </div>
+        </label>
+
+        <!-- Item 5 -->
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] cursor-pointer hover:border-emerald-500/50 transition-colors">
+          <input type="checkbox" id="task-5" onchange="updateProgress()" class="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[var(--foreground)]">5. Blindar Idempotencia con Payload Diferente (`422`) y Bloqueo Concurrente (RNF-08 / RNF-09)</span>
+              <span class="badge bg-blue-500/15 text-blue-500">Arquitectura</span>
+            </div>
+            <p class="text-[var(--muted-foreground)] mt-0.5">Si se repite la `claveIdempotencia` pero con datos distintos en el body, responder `422`. En activación, asegurar que no haya doble llamado a M5 ante peticiones simultáneas.</p>
+          </div>
+        </label>
+
+        <!-- Item 6 -->
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] cursor-pointer hover:border-emerald-500/50 transition-colors">
+          <input type="checkbox" id="task-6" onchange="updateProgress()" class="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[var(--foreground)]">6. Implementar RF-9.8: Recordatorios de Reserva (`POST /reservas/:id/recordatorio`)</span>
+              <span class="badge bg-amber-500/15 text-amber-500">Requerimiento Faltante</span>
+            </div>
+            <p class="text-[var(--muted-foreground)] mt-0.5">Implementar endpoint y método en servicio que envíe el evento `RESERVA_RECORDATORIO` a M8 y lo asiente en `historial_reservas` (RF-9.12).</p>
+          </div>
+        </label>
+
+        <!-- Item 7 -->
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] cursor-pointer hover:border-emerald-500/50 transition-colors">
+          <input type="checkbox" id="task-7" onchange="updateProgress()" class="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[var(--foreground)]">7. Implementar RF-9.9: Scheduler Automático de Activación en Despacho</span>
+              <span class="badge bg-amber-500/15 text-amber-500">Requerimiento Faltante</span>
+            </div>
+            <p class="text-[var(--muted-foreground)] mt-0.5">Crear un servicio en background (`ReservationScheduler`) que revise cada X segundos las reservas `CONFIRMADA` próximas a su hora de inicio y llame a `activarReserva()` automáticamente.</p>
+          </div>
+        </label>
+
+        <!-- Item 8 -->
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] cursor-pointer hover:border-emerald-500/50 transition-colors">
+          <input type="checkbox" id="task-8" onchange="updateProgress()" class="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[var(--foreground)]">8. Evaluar Cargo de Cancelación Tardía con M7 (RF-9.7)</span>
+              <span class="badge bg-blue-500/15 text-blue-500">Mejora de Negocio</span>
+            </div>
+            <p class="text-[var(--muted-foreground)] mt-0.5">Si la cancelación ocurre cerca del horario del viaje (ej. menos de 60 minutos), calcular/registrar si aplica cargo según reglas vigentes e incluirlo en la respuesta.</p>
+          </div>
+        </label>
+
+        <!-- Item 9 -->
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] cursor-pointer hover:border-emerald-500/50 transition-colors">
+          <input type="checkbox" id="task-9" onchange="updateProgress()" class="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[var(--foreground)]">9. Buenas Prácticas REST de Filminas DS-04 (Header `Location` y Paginación)</span>
+              <span class="badge bg-blue-500/15 text-blue-500">Estándar Cátedra</span>
+            </div>
+            <p class="text-[var(--muted-foreground)] mt-0.5">Retornar `Location: /reservas/{id}` al responder `201 Created` en `POST /reservas` y soportar `page` y `size` en `GET /reservas`.</p>
+          </div>
+        </label>
+
+        <!-- Item 10 -->
+        <label class="flex items-start gap-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] cursor-pointer hover:border-emerald-500/50 transition-colors">
+          <input type="checkbox" id="task-10" onchange="updateProgress()" class="mt-0.5 rounded text-emerald-500 focus:ring-emerald-500">
+          <div class="flex-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-[var(--foreground)]">10. Configurar Suite Inicial de Playwright E2E (RNF-07 / TP3)</span>
+              <span class="badge bg-purple-500/15 text-purple-500">Preparación Futura</span>
+            </div>
+            <p class="text-[var(--muted-foreground)] mt-0.5">Instalar `@playwright/test`, crear `playwright.config.ts` y dejar armada la prueba base de reserva para cuando se integren con la UI de los otros grupos.</p>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 2: LIMPIEZA GIT & SETUP INICIAL                                  -->
+  <!-- ===================================================================== -->
+  <div id="tab-git" class="tab-content space-y-4">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-base font-bold mb-2">Paso 1: Higiene de Repositorio y Secretos (RNF-06)</h2>
+      <p class="text-xs text-[var(--muted-foreground)] leading-relaxed mb-4">
+        Antes de empezar a programar nada, hay que limpiar el proyecto. En el ZIP de tu grupo vinieron el archivo <code>.env</code> real (con claves), la carpeta <code>node_modules/</code> y <code>dist/</code>. El requerimiento RNF-06 y las filminas DS-04 prohíben expresamente incluir secretos en repositorios compartidos.
+      </p>
+
+      <div class="space-y-4 text-xs">
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-blue-500 mb-2">1. Crear el archivo `.gitignore` en la raíz de `2026-08-TPI-main`</div>
+          <p class="text-[var(--muted-foreground)] mb-2">Creá un archivo llamado exactamente <code>.gitignore</code> y pegá este contenido:</p>
+          <pre class="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]"># Dependencias y compilados
+node_modules/
+dist/
+
+# Variables de entorno y secretos (RNF-06)
+.env
+.env.*
+!.env.example
+
+# Cobertura y reportes de tests
+coverage/
+playwright-report/
+test-results/
+
+# Logs del sistema
+*.log
+npm-debug.log*
+
+# Archivos de sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/</pre>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-emerald-500 mb-2">2. Comandos para limpiar el repositorio sin borrar tus archivos locales</div>
+          <p class="text-[var(--muted-foreground)] mb-2">Si ya habían inicializado un repositorio Git, ejecuten esto en la terminal para desrastrear archivos pesados y secretos:</p>
+          <pre class="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]"># Quitar .env del seguimiento de Git (no borra tu archivo local)
+git rm --cached .env
+
+# Quitar node_modules y dist si habían sido agregados
+git rm -r --cached node_modules/ 2> /dev/null || true
+git rm -r --cached dist/ 2> /dev/null || true
+
+# Guardar los cambios de limpieza
+git add .gitignore .env.example
+git commit -m "chore: agregar .gitignore y remover secretos/compilados del repositorio (RNF-06)"</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 3: OPENAPI 3.1.0 & CONTRATO CÁTEDRA                              -->
+  <!-- ===================================================================== -->
+  <div id="tab-openapi" class="tab-content space-y-4">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-base font-bold mb-2">Paso 2: Actualización de Contrato OpenAPI 3.1.0 (RNF-03)</h2>
+      <p class="text-xs text-[var(--muted-foreground)] leading-relaxed mb-4">
+        En <code>C:\Users\mateo\OneDrive\Desktop\2026-TPI-main\contratos\m9_reservas\openapi.yml</code> el archivo de la cátedra está vacío (6 líneas). Tienen que llevar el contrato de su grupo ahí. Pero antes hay que actualizarlo de OpenAPI 3.0.3 a <strong>OpenAPI 3.1.0</strong> (que es la versión del repositorio central).
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-amber-500/30">
+          <div class="font-bold text-sm text-amber-500 mb-2">Diferencia 1: Cabecera y Sintaxis Nullable</div>
+          <p class="text-[var(--muted-foreground)] mb-2">En OpenAPI 3.0 se usaba <code>nullable: true</code>. En OpenAPI 3.1.0 se usa sintaxis JSON Schema pura:</p>
+          <div class="space-y-2">
+            <div>
+              <span class="text-rose-500 font-semibold">❌ OpenAPI 3.0.3 (Como está hoy):</span>
+              <pre class="p-2 rounded bg-[var(--card)] border border-[var(--border)]">openapi: 3.0.3
+...
+alias:
+  type: string
+  nullable: true</pre>
+            </div>
+            <div>
+              <span class="text-emerald-500 font-semibold">✅ OpenAPI 3.1.0 (Como debe quedar):</span>
+              <pre class="p-2 rounded bg-[var(--card)] border border-[var(--border)]">openapi: 3.1.0
+...
+alias:
+  type: [string, "null"]</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-[var(--background)] border border-purple-500/30">
+          <div class="font-bold text-sm text-purple-500 mb-2">Diferencia 2: Catálogo de Eventos Asíncronos</div>
+          <p class="text-[var(--muted-foreground)] mb-2">El RNF-03 exige: <em>"Eventos documentados en un catálogo común"</em>. M6 (Grupo 12) ya agregó sus esquemas de eventos al final del contrato. M9 debe hacer lo mismo en `components/schemas`:</p>
+          <pre class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]"># Esquema de evento para M8
+ReservaEventoEnvelope:
+  type: object
+  required: [eventoId, tipoEvento, ocurridoEn, reservaId]
+  properties:
+    eventoId: { type: string, format: uuid }
+    tipoEvento:
+      type: string
+      enum: [RESERVA_CREADA, RESERVA_CONFIRMADA, RESERVA_MODIFICADA, RESERVA_RECORDATORIO, RESERVA_ACTIVADA, RESERVA_CANCELADA, RESERVA_VENCIDA]
+    ocurridoEn: { type: string, format: date-time }
+    reservaId: { type: string, format: uuid }
+    datos: { type: object }</pre>
+        </div>
+      </div>
+
+      <div class="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-xs text-blue-500 mt-4">
+        🤝 <strong>Coordinación con Grupo 9:</strong> Como el Grupo 9 también tiene asignado el Módulo 9, avísenles por el grupo de la cátedra o por WhatsApp que ustedes ya tienen el contrato listo en 3.1.0 para consensuarlo y que ambos grupos presenten el mismo archivo.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 4: CORRECCIÓN DE BUGS CRÍTICOS (CÓDIGO ANTES / DESPUÉS)           -->
+  <!-- ===================================================================== -->
+  <div id="tab-bugs" class="tab-content space-y-4">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-base font-bold mb-2">Paso 3: Corrección de los 3 Bugs Críticos</h2>
+      <p class="text-xs text-[var(--muted-foreground)] mb-4">
+        Estos son los 3 puntos donde el código actual de tu grupo falla ante situaciones reales de producción o permisos:
+      </p>
+
+      <!-- Bug 1 -->
+      <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] text-xs mb-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="badge bg-rose-500 text-white">Bug 1</span>
+          <span class="font-bold text-sm text-[var(--foreground)]">Clientes HTTP haciendo fallback a mocks cuando `USE_EXTERNAL_MOCKS=false`</span>
+        </div>
+        <p class="text-[var(--muted-foreground)] mb-3">
+          <strong>Archivos:</strong> <code>src/clients/m2Client.ts</code>, <code>m4Client.ts</code>, <code>m5Client.ts</code> y <code>m7Client.ts</code>.<br>
+          <strong>Solución:</strong> En el bloque `catch`, verificar si `config.services.useExternalMocks` está activo. Si está en `false`, lanzar un `AppError(503)` con formato RFC 7807.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <span class="font-semibold text-rose-500">❌ Código Actual (`m4Client.ts` línea 250):</span>
+            <pre class="p-2.5 rounded bg-[var(--card)] border border-[var(--border)] mt-1">catch (err: unknown) {
+  console.warn(`[M4Client] Error llamando a M4... Usando fallback mock.`);
+  return this.mockValidarYEstimar(data);
+}</pre>
+          </div>
+          <div>
+            <span class="font-semibold text-emerald-500">✅ Código Corregido:</span>
+            <pre class="p-2.5 rounded bg-[var(--card)] border border-[var(--border)] mt-1">catch (err: unknown) {
+  if (config.services.useExternalMocks) {
+    return this.mockValidarYEstimar(data);
+  }
+  throw new AppError({
+    status: 503,
+    title: 'Dependencia no disponible',
+    detail: `El Módulo de Ubicación (M4) no respondió: ${(err as Error).message}`
+  });
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bug 2 -->
+      <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] text-xs mb-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="badge bg-rose-500 text-white">Bug 2</span>
+          <span class="font-bold text-sm text-[var(--foreground)]">Rol `CONDUCTOR` recibiendo 403 Forbidden en `GET /reservas/:id`</span>
+        </div>
+        <p class="text-[var(--muted-foreground)] mb-3">
+          <strong>Archivo:</strong> <code>src/services/reservationService.ts</code> (método `obtenerPorId`, línea 184).<br>
+          <strong>Solución:</strong> Sumar a `CONDUCTOR` dentro de los roles autorizados a consultar la reserva.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <span class="font-semibold text-rose-500">❌ Código Actual:</span>
+            <pre class="p-2.5 rounded bg-[var(--card)] border border-[var(--border)] mt-1">const esAdmin = user.roles.includes('OPERADOR') || user.roles.includes('SERVICIO');
+if (!esAdmin && user.sub !== reserva.clienteId) {
+  throw new AppError({ status: 403, title: 'Acceso no autorizado' });
+}</pre>
+          </div>
+          <div>
+            <span class="font-semibold text-emerald-500">✅ Código Corregido:</span>
+            <pre class="p-2.5 rounded bg-[var(--card)] border border-[var(--border)] mt-1">const autorizado =
+  user.roles.includes('OPERADOR') ||
+  user.roles.includes('SERVICIO') ||
+  user.roles.includes('CONDUCTOR') ||
+  user.sub === reserva.clienteId;
+
+if (!autorizado) {
+  throw new AppError({ status: 403, title: 'Acceso no autorizado' });
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bug 3 -->
+      <div class="p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] text-xs">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="badge bg-rose-500 text-white">Bug 3</span>
+          <span class="font-bold text-sm text-[var(--foreground)]">Reuso de `claveIdempotencia` con cuerpo distinto debe responder 422</span>
+        </div>
+        <p class="text-[var(--muted-foreground)] mb-3">
+          <strong>Archivo:</strong> <code>src/services/reservationService.ts</code> (método `crearReserva`).<br>
+          <strong>Solución:</strong> Si la clave de idempotencia ya existe en la base, verificar que el `clienteId`, `origen`, `destino`, `tipoVehiculo` y `fechaHora` sean idénticos. Si cambiaron datos, responder `422 Unprocessable Content`.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 5: NUEVAS FUNCIONALIDADES (RF-9.8 Y RF-9.9)                       -->
+  <!-- ===================================================================== -->
+  <div id="tab-features" class="tab-content space-y-4">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-base font-bold mb-2">Paso 4: Implementación de Requerimientos Faltantes</h2>
+      <p class="text-xs text-[var(--muted-foreground)] mb-4">
+        Estos dos requerimientos están pedidos en el enunciado y actualmente faltan en el código de tu grupo:
+      </p>
+
+      <!-- RF-9.8 Recordatorios -->
+      <div class="p-4 rounded-xl bg-[var(--background)] border border-blue-500/30 text-xs mb-4">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="badge bg-blue-500 text-white">RF-9.8</span>
+          <span class="font-bold text-sm text-[var(--foreground)]">Recordatorios de Reserva (`RESERVA_RECORDATORIO`)</span>
+        </div>
+        <p class="text-[var(--muted-foreground)] mb-2">
+          <strong>Qué agregar:</strong> Un método en `ReservationService` y un endpoint `POST /reservas/:id/recordatorio` para solicitar o registrar un aviso previo al cliente vía M8:
+        </p>
+        <pre class="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">// En src/services/reservationService.ts:
+public static async enviarRecordatorio(id: string, user: JwtUserPayload, requestId?: string): Promise<{ mensaje: string }> {
+  const reserva = await this.obtenerPorId(id, user);
+
+  if (reserva.estado !== 'CONFIRMADA') {
+    throw new AppError({ status: 409, title: 'Reserva no confirmada', detail: 'Solo se pueden enviar recordatorios de reservas confirmadas.' });
+  }
+
+  // 1. Notificar a M8
+  await M8Client.notificarEvento({
+    tipo_evento: 'RESERVA_RECORDATORIO',
+    reserva_id: reserva.id,
+    cliente_id: reserva.clienteId,
+    fecha_hora: reserva.fechaHora,
+    zona_horaria: reserva.zonaHoraria,
+    origen_direccion: reserva.origen.direccion,
+    destino_direccion: reserva.destino.direccion,
+    tipo_vehiculo: reserva.tipoVehiculo,
+    tarifa_estimada: reserva.tarifaEstimada,
+    ocurrido_en: new Date().toISOString()
+  }, requestId);
+
+  // 2. Asentar en historial (RF-9.12)
+  await HistoryRepository.registrar({
+    reservaId: reserva.id,
+    tipoEvento: 'RESERVA_RECORDATORIO',
+    estadoAnterior: reserva.estado,
+    estadoNuevo: reserva.estado,
+    actor: user.sub,
+    detalles: { accion: 'Recordatorio enviado a M8' }
+  });
+
+  return { mensaje: 'Recordatorio enviado exitosamente a M8.' };
+}</pre>
+      </div>
+
+      <!-- RF-9.9 Scheduler Automático -->
+      <div class="p-4 rounded-xl bg-[var(--background)] border border-purple-500/30 text-xs">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="badge bg-purple-500 text-white">RF-9.9</span>
+          <span class="font-bold text-sm text-[var(--foreground)]">Scheduler de Activación Automática al Llegar la Hora</span>
+        </div>
+        <p class="text-[var(--muted-foreground)] mb-2">
+          <strong>Qué agregar:</strong> Crear `src/services/schedulerService.ts` que se inicialice en `src/index.ts` (solo si no es entorno de testing) para revisar periódicamente las reservas listas para despacho:
+        </p>
+        <pre class="p-3 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)]">// En src/services/schedulerService.ts:
+import { db } from '../config/database';
+import { ActivationService } from './activationService';
+
+export class ReservationScheduler {
+  private static timer: NodeJS.Timeout | null = null;
+
+  public static start(intervalMs: number = 30000) {
+    if (process.env.NODE_ENV === 'test') return;
+
+    this.timer = setInterval(async () => {
+      try {
+        // Busca reservas CONFIRMADAS que arranquen en los próximos 20 minutos y no tengan solicitud M5
+        const query = `
+          SELECT id FROM reservas 
+          WHERE estado = 'CONFIRMADA' 
+            AND solicitud_despacho_id IS NULL
+            AND fecha_hora <= NOW() + INTERVAL '20 minutes'
+            AND fecha_hora >= NOW() - INTERVAL '5 minutes'
+        `;
+        const res = await db.query(query);
+        for (const row of res.rows) {
+          await ActivationService.activarReserva(row.id, { sub: 'scheduler-m9', roles: ['SERVICIO'] });
+          console.log(`[Scheduler] Reserva ${row.id} activada automáticamente hacia M5.`);
+        }
+      } catch (err) {
+        console.error('[Scheduler Error]', err);
+      }
+    }, intervalMs);
+  }
+
+  public static stop() {
+    if (this.timer) clearInterval(this.timer);
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 6: DIVISIÓN DE TAREAS EN EL GRUPO                                -->
+  <!-- ===================================================================== -->
+  <div id="tab-division" class="tab-content space-y-4">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-base font-bold mb-2">Paso 5: Cómo Dividir el Trabajo entre los Integrantes</h2>
+      <p class="text-xs text-[var(--muted-foreground)] leading-relaxed mb-4">
+        Para no pisarse editando los mismos archivos al mismo tiempo, recomendamos trabajar en <strong>ramas Git separadas (Feature Branches)</strong> dividiendo el trabajo en 3 o 4 roles claros:
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+        <!-- Integrante A -->
+        <div class="p-4 rounded-xl bg-[var(--background)] border-t-4 border-blue-500 border border-[var(--border)]">
+          <div class="font-bold text-sm text-blue-500 mb-1">Rol 1: Contratos & Git</div>
+          <div class="text-[11px] text-[var(--muted-foreground)] mb-2 font-mono">Rama: feature/openapi-and-hygiene</div>
+          <ul class="space-y-1.5 text-[var(--muted-foreground)] list-disc pl-4">
+            <li>Crear `.gitignore` y limpiar `.env`.</li>
+            <li>Actualizar `openapi.yaml` a OpenAPI 3.1.0 (`nullable: true` -> `type: [..., "null"]`).</li>
+            <li>Copiarlo a `2026-TPI-main/contratos/m9_reservas/openapi.yml`.</li>
+            <li>Hablar con el Grupo 9 para validar que estén de acuerdo con el contrato.</li>
+          </ul>
+        </div>
+
+        <!-- Integrante B -->
+        <div class="p-4 rounded-xl bg-[var(--background)] border-t-4 border-emerald-500 border border-[var(--border)]">
+          <div class="font-bold text-sm text-emerald-500 mb-1">Rol 2: Clientes HTTP & Seguridad</div>
+          <div class="text-[11px] text-[var(--muted-foreground)] mb-2 font-mono">Rama: feature/resilience-and-security</div>
+          <ul class="space-y-1.5 text-[var(--muted-foreground)] list-disc pl-4">
+            <li>Cambiar los `catch` de `m2Client`, `m4Client`, `m5Client` y `m7Client` para lanzar error `503` real cuando `USE_EXTERNAL_MOCKS=false`.</li>
+            <li>Arreglar permiso de `CONDUCTOR` en `ReservationService.obtenerPorId()`.</li>
+            <li>Validar conflicto `422` en `crearReserva()` si cambia el body con la misma clave de idempotencia.</li>
+            <li>Sumar header `Location` al responder `201 Created`.</li>
+          </ul>
+        </div>
+
+        <!-- Integrante C -->
+        <div class="p-4 rounded-xl bg-[var(--background)] border-t-4 border-purple-500 border border-[var(--border)]">
+          <div class="font-bold text-sm text-purple-500 mb-1">Rol 3: Nuevas Features & Testing</div>
+          <div class="text-[11px] text-[var(--muted-foreground)] mb-2 font-mono">Rama: feature/scheduler-and-playwright</div>
+          <ul class="space-y-1.5 text-[var(--muted-foreground)] list-disc pl-4">
+            <li>Implementar `POST /reservas/:id/recordatorio` y evento a M8 (RF-9.8).</li>
+            <li>Crear `src/services/schedulerService.ts` para activación automática (RF-9.9).</li>
+            <li>Agregar tests en Jest para verificar las nuevas funciones.</li>
+            <li>Instalar `@playwright/test` y dejar el esqueleto para pruebas E2E.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-xs mt-4">
+        <div class="font-bold text-[var(--foreground)] mb-1">Estrategia de Merge recomendada:</div>
+        <p class="text-[var(--muted-foreground)]">
+          1. El Rol 1 hace la limpieza de Git primero y la sube a `main`.<br>
+          2. Luego el Rol 2 y el Rol 3 abren sus ramas desde `main` limpio.<br>
+          3. Cada uno corre `npm test` en su rama para verificar que sigan pasando los 35 tests antes de fusionar.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- TAB 7: SETUP PLAYWRIGHT E2E                                          -->
+  <!-- ===================================================================== -->
+  <div id="tab-playwright" class="tab-content space-y-4">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <h2 class="text-base font-bold mb-2">Paso 6: Preparación de Playwright para Pruebas E2E (TP3)</h2>
+      <p class="text-xs text-[var(--muted-foreground)] leading-relaxed mb-4">
+        Para que ya dejen el proyecto listo de cara a la integración con las pantallas de otros grupos, estos son los pasos para inicializar Playwright:
+      </p>
+
+      <div class="space-y-3 text-xs">
+        <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-blue-500 mb-1">1. Instalación de Dependencias</div>
+          <pre class="p-2.5 rounded bg-[var(--card)] border border-[var(--border)]">npm install -D @playwright/test
+npx playwright install --with-deps chromium</pre>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-emerald-500 mb-1">2. Crear `playwright.config.ts` en la raíz</div>
+          <pre class="p-2.5 rounded bg-[var(--card)] border border-[var(--border)]">import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests/e2e',
+  timeout: 30000,
+  use: {
+    baseURL: 'http://localhost:8089',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+  },
+});</pre>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div class="font-bold text-sm text-purple-500 mb-1">3. Script en `package.json`</div>
+          <p class="text-[var(--muted-foreground)] mb-1">Agregar en la sección `"scripts"`:</p>
+          <pre class="p-2.5 rounded bg-[var(--card)] border border-[var(--border)]">"test:e2e": "playwright test",
+"test:e2e:ui": "playwright test --ui"</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SCRIPT DE LOCALSTORAGE Y CHECKLIST ==================== -->
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      document.getElementById('btn-' + tabId).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    const totalTasks = 10;
+
+    function updateProgress() {
+      let completed = 0;
+      for (let i = 1; i <= totalTasks; i++) {
+        const checkbox = document.getElementById('task-' + i);
+        if (checkbox && checkbox.checked) {
+          completed++;
+          localStorage.setItem('task-' + i, 'true');
+        } else {
+          localStorage.removeItem('task-' + i);
+        }
+      }
+
+      const percent = Math.round((completed / totalTasks) * 100);
+      document.getElementById('completed-count').innerText = completed;
+      document.getElementById('total-count').innerText = totalTasks;
+      document.getElementById('progress-percent').innerText = percent + '%';
+      document.getElementById('progress-bar').style.width = percent + '%';
+    }
+
+    function loadSavedChecklist() {
+      for (let i = 1; i <= totalTasks; i++) {
+        const saved = localStorage.getItem('task-' + i);
+        const checkbox = document.getElementById('task-' + i);
+        if (checkbox && saved === 'true') {
+          checkbox.checked = true;
+        }
+      }
+      updateProgress();
+    }
+
+    function resetChecklist() {
+      if (confirm('¿Querés reiniciar todas las tareas del checklist?')) {
+        for (let i = 1; i <= totalTasks; i++) {
+          const checkbox = document.getElementById('task-' + i);
+          if (checkbox) checkbox.checked = false;
+          localStorage.removeItem('task-' + i);
+        }
+        updateProgress();
+      }
+    }
+
+    // Inicializar al cargar la página
+    window.onload = loadSavedChecklist;
+  </script>
+</body>
+</html>
