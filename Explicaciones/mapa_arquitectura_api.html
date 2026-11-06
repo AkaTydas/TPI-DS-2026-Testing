@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa de Arquitectura API - M9 Reservas de Viajes</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #0d1117;
+      color: #c9d1d9;
+      margin: 0;
+      padding: 24px;
+    }
+    h1 {
+      color: #58a6ff;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 12px;
+      margin-bottom: 8px;
+    }
+    p {
+      color: #8b949e;
+      margin-top: 0;
+      margin-bottom: 24px;
+    }
+    .diagram-card {
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+      overflow-x: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <h1>🗺️ Mapa de Arquitectura: Del Contrato OpenAPI al Código TypeScript</h1>
+  <p>Visualización completa del flujo de datos de M9 (Reservas de Viajes) para UTN FRRe 2026.</p>
+
+  <div class="diagram-card">
+    <pre class="mermaid">
+flowchart TD
+    %% Contrato y Entrada
+    subgraph S_CONTRATO ["0. Contrato de la API"]
+        YAML["openapi.yaml<br/>(Contrato REST OpenAPI 3.0.3)"]
+    end
+
+    subgraph S_ENTRY ["1. Entrada y Configuración Express"]
+        INDEX["src/index.ts<br/>(Punto de arranque del servidor)"]
+        APP["src/app.ts<br/>(Configuración de Express y montaje de rutas)"]
+        ENV["src/config/env.ts<br/>(Lectura y tipado de variables de entorno)"]
+        DB["src/config/database.ts<br/>(Pool de PostgreSQL y conexión)"]
+    end
+
+    subgraph S_MIDDLEWARES ["2. Middlewares Globales y de Seguridad"]
+        REQ_ID["src/middlewares/requestId.ts<br/>(Asigna/propaga X-Request-Id)"]
+        AUTH["src/middlewares/auth.ts<br/>(Verifica JWT y valida roles de usuario)"]
+        ERR_HANDLER["src/middlewares/errorHandler.ts<br/>(Captura errores y formatea RFC 7807)"]
+        NOT_FOUND["src/middlewares/notFoundHandler.ts<br/>(Rutas 404 no encontradas)"]
+    end
+
+    subgraph S_ROUTES ["3. Rutas de la Aplicación"]
+        R_RESERVAS["src/routes/reservationRoutes.ts<br/>(/reservas/*)"]
+        R_HEALTH["src/routes/healthRoutes.ts<br/>(/health)"]
+        R_DOCS["src/routes/docRoutes.ts<br/>(/docs y /openapi.yaml)"]
+    end
+
+    subgraph S_CONTROLLERS ["4. Controladores (Validación Zod y Despacho)"]
+        C_RES["src/controllers/reservationController.ts<br/>(Crear, Listar, Obtener, Modificar, Cancelar, Historial)"]
+        C_ACT["src/controllers/activationController.ts<br/>(Activar reserva y Webhook M5)"]
+        C_HLT["src/controllers/healthController.ts<br/>(Estado del servicio y DB)"]
+    end
+
+    subgraph S_SERVICES ["5. Servicios de Negocio (Lógica Central)"]
+        S_RES["src/services/reservationService.ts<br/>(Orquestación del ciclo de vida)"]
+        S_ACT["src/services/activationService.ts<br/>(Activación y transición de estados hacia M5)"]
+        S_VAL["src/services/anticipationValidator.ts<br/>(Valida ventana de 30 min a 30 días)"]
+    end
+
+    subgraph S_CLIENTS ["6. Clientes HTTP Salientes (Integración Externa)"]
+        HTTP_CORE["src/clients/httpClient.ts<br/>(Fetch central con timeouts y reintentos)"]
+        SEC_TOKEN["src/clients/serviceToken.ts<br/>(Genera JWT con rol SERVICIO)"]
+        CLI_M2["src/clients/m2Client.ts<br/>(Consulta estado en M2 Clientes)"]
+        CLI_M4["src/clients/m4Client.ts<br/>(Valida cobertura y distancia en M4)"]
+        CLI_M5["src/clients/m5Client.ts<br/>(Envía despacho a M5 con Idempotencia)"]
+        CLI_M7["src/clients/m7Client.ts<br/>(Cotiza tarifa estimada en M7)"]
+        CLI_M8["src/clients/m8Client.ts<br/>(Notifica eventos asíncronos a M8)"]
+    end
+
+    subgraph S_REPOSITORIES ["7. Repositorios y Persistencia"]
+        REPO_RES["src/repositories/reservationRepository.ts<br/>(CRUD de reservas SQL / Fallback RAM)"]
+        REPO_HIS["src/repositories/historyRepository.ts<br/>(Auditoría no destructiva de eventos)"]
+        REPO_IDEM["src/repositories/idempotencyRepository.ts<br/>(Registro de claves de idempotencia)"]
+        SQL_SCHEMA["sql/01_init_schema.sql<br/>(Tablas: reservas, historial, idempotencia)"]
+    end
+
+    subgraph S_TYPES ["8. Modelos y Tipos de TypeScript"]
+        T_AUTH["src/types/auth.ts<br/>(Roles, JwtUserPayload, Express.Request)"]
+        T_RES["src/types/reservation.ts<br/>(DTOs, Entidades, Enums de Dominio)"]
+        T_PROB["src/types/problem.ts<br/>(Clase AppError y ProblemDetails RFC 7807)"]
+    end
+
+    %% Relaciones
+    YAML -.->|Define contratos de| APP
+    INDEX --> APP
+    INDEX --> DB
+    INDEX --> ENV
+
+    APP --> REQ_ID
+    APP --> R_HEALTH
+    APP --> R_DOCS
+    APP --> R_RESERVAS
+    APP --> NOT_FOUND
+    APP --> ERR_HANDLER
+
+    R_HEALTH --> C_HLT
+    R_DOCS --> YAML
+
+    R_RESERVAS --> AUTH
+    AUTH --> T_AUTH
+    AUTH -.->|Si falla token| ERR_HANDLER
+
+    R_RESERVAS --> C_RES
+    R_RESERVAS --> C_ACT
+
+    C_RES --> S_RES
+    C_ACT --> S_ACT
+
+    S_RES --> S_VAL
+    S_RES --> REPO_IDEM
+    S_RES --> REPO_RES
+    S_RES --> REPO_HIS
+    S_RES --> CLI_M2
+    S_RES --> CLI_M4
+    S_RES --> CLI_M7
+    S_RES --> CLI_M8
+
+    S_ACT --> CLI_M5
+    S_ACT --> CLI_M8
+    S_ACT --> REPO_RES
+    S_ACT --> REPO_HIS
+
+    CLI_M2 --> HTTP_CORE
+    CLI_M4 --> HTTP_CORE
+    CLI_M5 --> HTTP_CORE
+    CLI_M7 --> HTTP_CORE
+    CLI_M8 --> HTTP_CORE
+    HTTP_CORE --> SEC_TOKEN
+
+    REPO_RES --> DB
+    REPO_HIS --> DB
+    REPO_IDEM --> DB
+    DB --> SQL_SCHEMA
+
+    S_RES -.->|Lanza AppError| ERR_HANDLER
+    C_RES -.->|ZodError| ERR_HANDLER
+    ERR_HANDLER --> T_PROB
+    </pre>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      flowchart: {
+        useMaxWidth: false,
+        htmlLabels: true,
+        curve: 'basis'
+      }
+    });
+  </script>
+</body>
+</html>
+
