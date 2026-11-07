@@ -19,11 +19,30 @@
       padding-bottom: 12px;
       margin-bottom: 8px;
     }
-    p {
+    .subtitle {
       color: #8b949e;
       margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 0.95rem;
+    }
+    .badge-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
       margin-bottom: 24px;
     }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .badge-green { background-color: rgba(46, 160, 67, 0.15); color: #3fb950; border-color: rgba(46, 160, 67, 0.3); }
+    .badge-blue { background-color: rgba(56, 139, 253, 0.15); color: #58a6ff; border-color: rgba(56, 139, 253, 0.3); }
+    .badge-purple { background-color: rgba(163, 113, 247, 0.15); color: #bc8cff; border-color: rgba(163, 113, 247, 0.3); }
     .diagram-card {
       background-color: #161b22;
       border: 1px solid #30363d;
@@ -31,33 +50,81 @@
       padding: 20px;
       overflow-x: auto;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      margin-bottom: 24px;
+    }
+    .info-card {
+      background-color: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .info-card h2 {
+      color: #58a6ff;
+      margin-top: 0;
+      font-size: 1.15rem;
+      border-bottom: 1px solid #21262d;
+      padding-bottom: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 12px;
+    }
+    th, td {
+      border: 1px solid #30363d;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #21262d;
+      color: #f0f6fc;
+    }
+    tr:nth-child(even) {
+      background-color: #0d1117;
+    }
+    code {
+      background-color: rgba(110, 118, 129, 0.4);
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+      color: #f0f6fc;
     }
   </style>
 </head>
 <body>
-  <h1>🗺️ Mapa de Arquitectura: Del Contrato OpenAPI al Código TypeScript</h1>
-  <p>Visualización completa del flujo de datos de M9 (Reservas de Viajes) para UTN FRRe 2026.</p>
+  <h1>🗺️ Mapa de Arquitectura API: Del Contrato OpenAPI 3.1.0 al Código TypeScript</h1>
+  <p class="subtitle">Visualización completa del flujo de datos, middlewares, servicios, scheduler en segundo plano y persistencia de M9 (Reservas de Viajes) para UTN FRRe 2026.</p>
+
+  <div class="badge-bar">
+    <span class="badge badge-green">✔ 49 Tests Automatizados Pasando (9 Suites)</span>
+    <span class="badge badge-blue">✔ OpenAPI 3.1.0 Unificado e Intercambiable con Grupo 9</span>
+    <span class="badge badge-purple">✔ Scheduler Automático RF-9.9 Integrado</span>
+    <span class="badge badge-green">✔ Formato de Errores RNF-03 { codigo, mensaje, detalle }</span>
+  </div>
 
   <div class="diagram-card">
     <pre class="mermaid">
 flowchart TD
     %% Contrato y Entrada
     subgraph S_CONTRATO ["0. Contrato de la API"]
-        YAML["openapi.yaml<br/>(Contrato REST OpenAPI 3.0.3)"]
+        YAML["openapi.yaml<br/>(Contrato REST OpenAPI 3.1.0 Unificado con Grupo 9)"]
     end
 
-    subgraph S_ENTRY ["1. Entrada y Configuración Express"]
-        INDEX["src/index.ts<br/>(Punto de arranque del servidor)"]
-        APP["src/app.ts<br/>(Configuración de Express y montaje de rutas)"]
-        ENV["src/config/env.ts<br/>(Lectura y tipado de variables de entorno)"]
+    subgraph S_ENTRY ["1. Entrada y Arranque del Servidor"]
+        INDEX["src/index.ts<br/>(Arranque HTTP en puerto 8089, conexión DB y ciclo Scheduler)"]
+        APP["src/app.ts<br/>(Configuración de Express, CORS y montaje de rutas)"]
+        ENV["src/config/env.ts<br/>(Lectura tipada de variables de entorno)"]
         DB["src/config/database.ts<br/>(Pool de PostgreSQL y conexión)"]
+        SCHED["src/services/schedulerService.ts<br/>(ReservationScheduler: revisa reservas a 20 min)"]
     end
 
     subgraph S_MIDDLEWARES ["2. Middlewares Globales y de Seguridad"]
-        REQ_ID["src/middlewares/requestId.ts<br/>(Asigna/propaga X-Request-Id)"]
-        AUTH["src/middlewares/auth.ts<br/>(Verifica JWT y valida roles de usuario)"]
-        ERR_HANDLER["src/middlewares/errorHandler.ts<br/>(Captura errores y formatea RFC 7807)"]
-        NOT_FOUND["src/middlewares/notFoundHandler.ts<br/>(Rutas 404 no encontradas)"]
+        REQ_ID["src/middlewares/requestId.ts<br/>(Asigna y propaga X-Request-Id)"]
+        AUTH["src/middlewares/auth.ts<br/>(Verifica JWT y valida roles: CLIENTE, CONDUCTOR, OPERADOR, SERVICIO)"]
+        ERR_HANDLER["src/middlewares/errorHandler.ts<br/>(Captura excepciones: formato RNF-03 { codigo, mensaje, detalle })"]
+        NOT_FOUND["src/middlewares/notFoundHandler.ts<br/>(Manejo 404 Not Found estandarizado)"]
     end
 
     subgraph S_ROUTES ["3. Rutas de la Aplicación"]
@@ -66,46 +133,50 @@ flowchart TD
         R_DOCS["src/routes/docRoutes.ts<br/>(/docs y /openapi.yaml)"]
     end
 
-    subgraph S_CONTROLLERS ["4. Controladores (Validación Zod y Despacho)"]
-        C_RES["src/controllers/reservationController.ts<br/>(Crear, Listar, Obtener, Modificar, Cancelar, Historial)"]
-        C_ACT["src/controllers/activationController.ts<br/>(Activar reserva y Webhook M5)"]
-        C_HLT["src/controllers/healthController.ts<br/>(Estado del servicio y DB)"]
+    subgraph S_CONTROLLERS ["4. Controladores (Validación Zod y Respuestas)"]
+        C_RES["src/controllers/reservationController.ts<br/>(RespuestaCreacion: { mensaje, motivo, reserva, condiciones })"]
+        C_ACT["src/controllers/activationController.ts<br/>(POST /reservas/:id/activar y Webhook M5 /despacho)"]
+        C_HLT["src/controllers/healthController.ts<br/>(Estado del servicio y base de datos)"]
     end
 
     subgraph S_SERVICES ["5. Servicios de Negocio (Lógica Central)"]
-        S_RES["src/services/reservationService.ts<br/>(Orquestación del ciclo de vida)"]
-        S_ACT["src/services/activationService.ts<br/>(Activación y transición de estados hacia M5)"]
-        S_VAL["src/services/anticipationValidator.ts<br/>(Valida ventana de 30 min a 30 días)"]
+        S_RES["src/services/reservationService.ts<br/>(Ciclo de vida, validación 409 idempotencia y cálculo)"]
+        S_ACT["src/services/activationService.ts<br/>(Activación hacia M5 y retorno de ReservaDTO completo)"]
+        S_VAL["src/services/anticipationValidator.ts<br/>(Valida anticipación de 30 min a 30 días)"]
     end
 
-    subgraph S_CLIENTS ["6. Clientes HTTP Salientes (Integración Externa)"]
+    subgraph S_CLIENTS ["6. Clientes HTTP Salientes (Sin fallbacks silenciosos a mocks)"]
         HTTP_CORE["src/clients/httpClient.ts<br/>(Fetch central con timeouts y reintentos)"]
         SEC_TOKEN["src/clients/serviceToken.ts<br/>(Genera JWT con rol SERVICIO)"]
-        CLI_M2["src/clients/m2Client.ts<br/>(Consulta estado en M2 Clientes)"]
-        CLI_M4["src/clients/m4Client.ts<br/>(Valida cobertura y distancia en M4)"]
-        CLI_M5["src/clients/m5Client.ts<br/>(Envía despacho a M5 con Idempotencia)"]
-        CLI_M7["src/clients/m7Client.ts<br/>(Cotiza tarifa estimada en M7)"]
-        CLI_M8["src/clients/m8Client.ts<br/>(Notifica eventos asíncronos a M8)"]
+        CLI_M2["src/clients/m2Client.ts<br/>(Consulta estado en M2 Clientes -> 503 si cae)"]
+        CLI_M4["src/clients/m4Client.ts<br/>(Valida cobertura y distancia en M4 -> 503 si cae)"]
+        CLI_M5["src/clients/m5Client.ts<br/>(Envía despacho a M5 con Idempotency-Key -> 503 si cae)"]
+        CLI_M7["src/clients/m7Client.ts<br/>(Cotiza tarifa estimada en M7 -> 503 si cae)"]
+        CLI_M8["src/clients/m8Client.ts<br/>(Notifica eventos asíncronos a M8 Notificaciones)"]
     end
 
-    subgraph S_REPOSITORIES ["7. Repositorios y Persistencia"]
-        REPO_RES["src/repositories/reservationRepository.ts<br/>(CRUD de reservas SQL / Fallback RAM)"]
-        REPO_HIS["src/repositories/historyRepository.ts<br/>(Auditoría no destructiva de eventos)"]
-        REPO_IDEM["src/repositories/idempotencyRepository.ts<br/>(Registro de claves de idempotencia)"]
-        SQL_SCHEMA["sql/01_init_schema.sql<br/>(Tablas: reservas, historial, idempotencia)"]
+    subgraph S_REPOSITORIES ["7. Persistencia y Auditoría"]
+        REPO_RES["src/repositories/reservationRepository.ts<br/>(CRUD SQL / Memoria y buscarPendientesDeActivacion)"]
+        REPO_HIS["src/repositories/historyRepository.ts<br/>(Auditoría no destructiva de eventos con EntradaHistorial)"]
+        REPO_IDEM["src/repositories/idempotencyRepository.ts<br/>(Registro y verificación de claveIdempotencia)"]
+        SQL_SCHEMA["sql/01_init_schema.sql<br/>(Tablas relacionales: reservas, historial, idempotencia)"]
     end
 
     subgraph S_TYPES ["8. Modelos y Tipos de TypeScript"]
         T_AUTH["src/types/auth.ts<br/>(Roles, JwtUserPayload, Express.Request)"]
-        T_RES["src/types/reservation.ts<br/>(DTOs, Entidades, Enums de Dominio)"]
-        T_PROB["src/types/problem.ts<br/>(Clase AppError y ProblemDetails RFC 7807)"]
+        T_RES["src/types/reservation.ts<br/>(ReservaDTO, RespuestaCreacion, Enums)"]
+        T_PROB["src/types/problem.ts<br/>(Clase AppError y ProblemDetails)"]
     end
 
-    %% Relaciones
-    YAML -.->|Define contratos de| APP
+    %% Relaciones de Flujo
+    YAML -.->|Define especificación formal de| APP
     INDEX --> APP
     INDEX --> DB
     INDEX --> ENV
+    INDEX --> SCHED
+
+    SCHED --> REPO_RES
+    SCHED --> S_ACT
 
     APP --> REQ_ID
     APP --> R_HEALTH
@@ -159,6 +230,104 @@ flowchart TD
     </pre>
   </div>
 
+  <div class="info-card">
+    <h2>2. Matriz de Endpoints y Componentes</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Endpoint</th>
+          <th>Método</th>
+          <th>Ruta TypeScript</th>
+          <th>Controlador</th>
+          <th>Servicio Central</th>
+          <th>Clientes / Persistencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>/health</code></td>
+          <td><code>GET</code></td>
+          <td><code>healthRoutes.ts</code></td>
+          <td><code>healthController.ts</code></td>
+          <td>Consulta de conectividad a BD</td>
+          <td><code>database.ts</code></td>
+        </tr>
+        <tr>
+          <td><code>/docs</code></td>
+          <td><code>GET</code></td>
+          <td><code>docRoutes.ts</code></td>
+          <td>Swagger UI Express</td>
+          <td>N/A</td>
+          <td><code>openapi.yaml</code></td>
+        </tr>
+        <tr>
+          <td><code>/reservas</code></td>
+          <td><code>POST</code></td>
+          <td><code>reservationRoutes.ts</code></td>
+          <td><code>reservationController.ts</code> (crear)</td>
+          <td><code>reservationService.ts</code> (crearReserva)</td>
+          <td><code>m2Client</code>, <code>m4Client</code>, <code>m7Client</code>, <code>m8Client</code>, <code>reservationRepository</code>, <code>idempotencyRepository</code></td>
+        </tr>
+        <tr>
+          <td><code>/reservas</code></td>
+          <td><code>GET</code></td>
+          <td><code>reservationRoutes.ts</code></td>
+          <td><code>reservationController.ts</code> (listar)</td>
+          <td><code>reservationService.ts</code> (listarPorCliente)</td>
+          <td><code>reservationRepository</code></td>
+        </tr>
+        <tr>
+          <td><code>/reservas/{id}</code></td>
+          <td><code>GET</code></td>
+          <td><code>reservationRoutes.ts</code></td>
+          <td><code>reservationController.ts</code> (obtenerPorId)</td>
+          <td><code>reservationService.ts</code> (obtenerPorId con soporte rol CONDUCTOR)</td>
+          <td><code>reservationRepository</code></td>
+        </tr>
+        <tr>
+          <td><code>/reservas/{id}</code></td>
+          <td><code>PATCH</code></td>
+          <td><code>reservationRoutes.ts</code></td>
+          <td><code>reservationController.ts</code> (modificar)</td>
+          <td><code>reservationService.ts</code> (modificarReserva)</td>
+          <td><code>m4Client</code>, <code>m7Client</code>, <code>m8Client</code>, <code>reservationRepository</code>, <code>historyRepository</code></td>
+        </tr>
+        <tr>
+          <td><code>/reservas/{id}/cancelar</code></td>
+          <td><code>POST</code></td>
+          <td><code>reservationRoutes.ts</code></td>
+          <td><code>reservationController.ts</code> (cancelar)</td>
+          <td><code>reservationService.ts</code> (cancelarReserva)</td>
+          <td><code>m8Client</code>, <code>reservationRepository</code>, <code>historyRepository</code></td>
+        </tr>
+        <tr>
+          <td><code>/reservas/{id}/historial</code></td>
+          <td><code>GET</code></td>
+          <td><code>reservationRoutes.ts</code></td>
+          <td><code>reservationController.ts</code> (historial)</td>
+          <td><code>historyRepository.ts</code> (listarPorReservaId)</td>
+          <td><code>historyRepository</code> (mapeo a EntradaHistorial)</td>
+        </tr>
+        <tr>
+          <td><code>/reservas/{id}/activar</code></td>
+          <td><code>POST</code></td>
+          <td><code>reservationRoutes.ts</code></td>
+          <td><code>activationController.ts</code> (activar)</td>
+          <td><code>activationService.ts</code> (activarReserva -> devuelve ReservaDTO completa)</td>
+          <td><code>m5Client</code>, <code>reservationRepository</code>, <code>historyRepository</code></td>
+        </tr>
+        <tr>
+          <td><code>/reservas/{id}/despacho</code></td>
+          <td><code>POST</code></td>
+          <td><code>reservationRoutes.ts</code></td>
+          <td><code>activationController.ts</code> (webhookDespacho)</td>
+          <td><code>activationService.ts</code> (procesarResultadoDespacho)</td>
+          <td><code>m8Client</code>, <code>reservationRepository</code>, <code>historyRepository</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
   <script>
     mermaid.initialize({
       startOnLoad: true,
@@ -172,4 +341,3 @@ flowchart TD
   </script>
 </body>
 </html>
-

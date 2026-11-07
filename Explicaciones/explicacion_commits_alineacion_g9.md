@@ -329,3 +329,4 @@ Time:        2.729 s
 * **Compilación de producción:** `npm run build` -> 0 errores.
 * **Chequeo de tipos estricto:** `npx tsc --noEmit` -> 0 errores.
 * **Cobertura funcional:** Intercambiabilidad verificada con Grupo 9.
+
