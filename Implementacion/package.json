@@ -1,0 +1,37 @@
+{
+  "name": "demo-investigacion-grupo8",
+  "version": "1.0.0",
+  "description": "Demostración Práctica: Patrón Saga Orquestado y Database per Service (UTN FRRe - Grupo 8)",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node --experimental-strip-types src/index.ts",
+    "build": "tsc",
+    "start:dist": "node dist/index.js",
+    "demo": "node scripts/run-demo.js",
+    "test:success": "node scripts/test-success.js",
+    "test:failure": "node scripts/test-failure.js",
+    "test:all": "node scripts/test-success.js && node scripts/test-failure.js"
+  },
+  "keywords": [
+    "saga-pattern",
+    "database-per-service",
+    "data-ownership",
+    "distributed-transactions",
+    "utn-frre"
+  ],
+  "author": "Grupo 8 - Desarrollo de Software 2026",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.13.9",
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.8.2"
+  }
+}

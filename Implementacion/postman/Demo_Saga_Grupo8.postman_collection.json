@@ -1,0 +1,138 @@
+{
+  "info": {
+    "_postman_id": "c8a4192b-88b1-4f51-bca2-9fa3114a87cb",
+    "name": "Demo Saga & Database per Service - Grupo 8 (UTN FRRe)",
+    "description": "Colección de pruebas para la demostración práctica integrada de los temas 11 y 12.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Healthcheck",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8090/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8090",
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "2. Crear Reserva (Para Flujo Exitoso)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Request-Id", "value": "req-pm-001" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clienteId\": \"cli-alumno-utn\",\n  \"origen\": \"Av. Castelli 930\",\n  \"destino\": \"Campus UTN FRRe\",\n  \"tarifaEstimada\": 3500.0\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8090/reservas",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8090",
+          "path": ["reservas"]
+        }
+      }
+    },
+    {
+      "name": "3. Activar Saga - Escenario Exitoso (Todo OK)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Idempotency-Key", "value": "idem-pm-ok-001" },
+          { "key": "X-Request-Id", "value": "req-saga-ok-001" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"forzarFalloM5\": false\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8090/reservas/{{reservaId}}/activar-saga",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8090",
+          "path": ["reservas", "{{reservaId}}", "activar-saga"]
+        }
+      }
+    },
+    {
+      "name": "4. Activar Saga - Escenario Fallo y Compensación (C2 -> C1)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Idempotency-Key", "value": "idem-pm-err-002" },
+          { "key": "X-Request-Id", "value": "req-saga-err-002" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"forzarFalloM5\": true\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8090/reservas/{{reservaId}}/activar-saga",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8090",
+          "path": ["reservas", "{{reservaId}}", "activar-saga"]
+        }
+      }
+    },
+    {
+      "name": "5. Consultar Historial de Auditoría Inmutable (RF-9.12)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8090/reservas/{{reservaId}}/historial",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8090",
+          "path": ["reservas", "{{reservaId}}", "historial"]
+        }
+      }
+    },
+    {
+      "name": "6. Inspeccionar las 3 Bases de Datos Aisladas (Database per Service)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8090/inspeccionar-bases",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8090",
+          "path": ["inspeccionar-bases"]
+        }
+      }
+    },
+    {
+      "name": "7. Webhook Idempotente Callback de M5",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Request-Id", "value": "req-webhook-001" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reservaId\": \"{{reservaId}}\",\n  \"resultado\": \"CONFIRMADA\",\n  \"conductorId\": \"cond-001\",\n  \"conductorNombre\": \"Hernán Fernández\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8090/webhooks/despacho",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8090",
+          "path": ["webhooks", "despacho"]
+        }
+      }
+    }
+  ]
+}
