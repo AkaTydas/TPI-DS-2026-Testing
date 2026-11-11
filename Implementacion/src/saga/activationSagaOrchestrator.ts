@@ -206,19 +206,35 @@ export class ActivationSagaOrchestrator {
         resultado: 'FALLO'
       });
 
-      // C2 (Acción Compensatoria M7): Liberar la pre-autorización monetaria
+      // C2 (Acción Compensatoria M7): Liberar la pre-autorización monetaria de forma defensiva
+      let compensacionM7Exitosa = false;
+      let errorCompensacionM7: string | null = null;
+
       if (pagoPreAutorizado) {
-        await M7Client.liberarPreAutorizacion({ reservaId }, requestId);
-        pasos.push({
-          paso: 'C2 - Compensación Financiera',
-          tipo: 'C2',
-          servicio: 'M7',
-          descripcion: 'Pre-autorización monetaria cancelada. Saldo retenido = $0 en db_pagos.',
-          resultado: 'COMPENSADO'
-        });
+        try {
+          await M7Client.liberarPreAutorizacion({ reservaId }, requestId);
+          compensacionM7Exitosa = true;
+          pasos.push({
+            paso: 'C2 - Compensación Financiera',
+            tipo: 'C2',
+            servicio: 'M7',
+            descripcion: 'Pre-autorización monetaria cancelada. Saldo retenido = $0 en db_pagos.',
+            resultado: 'COMPENSADO'
+          });
+        } catch (errC2: unknown) {
+          errorCompensacionM7 = errC2 instanceof Error ? errC2.message : 'Error desconocido en M7';
+          Logger.error(`[SAGA CRITICAL] Falló la compensación C2 en M7: ${errorCompensacionM7}. Registrando alerta para reconciliación.`, requestId);
+          pasos.push({
+            paso: 'C2 - Fallo en Compensación Financiera',
+            tipo: 'C2',
+            servicio: 'M7',
+            descripcion: `No se pudo liberar el pago automáticamente: ${errorCompensacionM7}. Requiere reconciliación manual.`,
+            resultado: 'FALLO'
+          });
+        }
       }
 
-      // C1 (Acción Compensatoria M9): Transición de estado a VENCIDA
+      // C1 (Acción Compensatoria M9): Transición de estado a VENCIDA (Garantizada)
       ReservationRepository.actualizarEstado(reservaId, 'VENCIDA');
       HistoryRepository.registrar({
         reservaId,
@@ -228,7 +244,9 @@ export class ActivationSagaOrchestrator {
         actor: 'SAGA_COMPENSATION_C1',
         detalles: {
           motivo: errorMsg,
-          accion: 'Compensación lógica por indisponibilidad de chofer en M5'
+          accion: 'Compensación lógica por indisponibilidad de chofer en M5',
+          estadoCompensacionM7: compensacionM7Exitosa ? 'LIBERADO' : 'REQUIERE_RECONCILIACION_MANUAL',
+          errorM7: errorCompensacionM7
         },
         fechaHora: new Date().toISOString()
       });
@@ -247,7 +265,9 @@ export class ActivationSagaOrchestrator {
           tipoEvento: 'RESERVA_VENCIDA',
           reservaId,
           clienteId: reserva.clienteId,
-          mensaje: 'No se encontraron conductores en la zona. No se realizó ningún cargo en tu tarjeta.'
+          mensaje: compensacionM7Exitosa
+            ? 'No se encontraron conductores en la zona. No se realizó ningún cargo en tu tarjeta.'
+            : 'No se encontraron conductores en la zona. El cobro está en proceso de revisión manual y será devuelto.'
         },
         requestId
       );
@@ -255,7 +275,7 @@ export class ActivationSagaOrchestrator {
         paso: 'Tr - Notificación de Cancelación',
         tipo: 'Tr',
         servicio: 'M8',
-        descripcion: 'Notificación de disculpa y liberación de fondos enviada al cliente',
+        descripcion: 'Notificación de disculpa y estado enviada al cliente',
         resultado: 'OK'
       });
 
@@ -263,9 +283,11 @@ export class ActivationSagaOrchestrator {
         exito: false,
         reservaId,
         estadoFinal: 'VENCIDA',
-        mensaje: `La reserva falló y se aplicó rollback lógico: ${errorMsg}`,
+        mensaje: compensacionM7Exitosa
+          ? `La reserva falló y se aplicó rollback lógico: ${errorMsg}`
+          : `La reserva falló y pasó a VENCIDA, pero la pasarela M7 requiere reconciliación manual: ${errorCompensacionM7}`,
         pasosEjecutados: pasos,
-        saldoRetenidoM7: 0,
+        saldoRetenidoM7: compensacionM7Exitosa ? 0 : reserva.tarifaEstimada,
         conductorAsignadoM5: null
       };
 

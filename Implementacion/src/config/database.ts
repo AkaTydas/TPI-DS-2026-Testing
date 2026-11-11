@@ -1,9 +1,13 @@
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// Directorio para las bases de datos SQLite físicamente aisladas
-const dataDir = path.resolve(process.cwd(), 'data');
+// Directorio para las bases de datos SQLite físicamente aisladas (relativo a Implementacion/)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const dataDir = path.resolve(__dirname, '../../data');
+
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
