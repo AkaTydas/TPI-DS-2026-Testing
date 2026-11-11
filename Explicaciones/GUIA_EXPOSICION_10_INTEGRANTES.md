@@ -221,9 +221,9 @@
 
 ---
 
-### 👤 Integrante 8 — Manejo de Fallas y Acciones Compensatorias ($C_2 \to C_1$)
+### 👤 Integrante 8 — Manejo de Fallas y Acciones Compensatorias ($C_2 \to C_1$) y Compensación Defensiva
 * **Tiempo:** Minuto 14:00 a 16:00
-* **Qué tener en pantalla:** Ejecución del `npm run demo` (Escenario 2) y las líneas 150-180 de `ActivationSagaOrchestrator.ts`.
+* **Qué tener en pantalla:** Ejecución del `npm run demo` (Escenario 2) y las líneas de compensación defensiva en `src/saga/activationSagaOrchestrator.ts`.
 * **Guion hablado:**
   > "El verdadero valor del Patrón Saga se aprecia cuando ocurre un fallo.
   > 
@@ -243,44 +243,46 @@
 * **💡 Bajada a tierra (Analogía):**
   > *"Si el repartidor de delivery llega a tu casa con la pizza quemada, no pueden 'des-quemar' la pizza: te devuelven el dinero y te entregan una nota de disculpas. Eso es una transacción compensatoria."*
 
-* **⚠️ Pregunta trampa del tribunal:**
-  * *Profesor:* "¿Qué pasa si la acción compensatoria también falla? (Ejemplo: se corta internet cuando el orquestador le pide a Pagos liberar el dinero)."
-  * *Respuesta:* "Se aplican políticas de **reintentos automáticos con retroceso exponencial (Exponential Backoff)** e idempotencia estricta. Si el fallo persiste tras N intentos, el mensaje va a una **Dead Letter Queue (DLQ)** y se levanta una alerta operativa para conciliación manual, preservando siempre la trazabilidad en logs."
+* **⚠️ Pregunta trampa del tribunal (¡La que define la máxima nota!):**
+  * *Profesor:* "¿Qué pasa si la acción compensatoria también falla? (Ejemplo: se cae M7 Pagos justo cuando intentamos devolver la plata)."
+  * *Respuesta:* "Una implementación novata dejaría escapar la excepción: el servidor respondería HTTP 500, la saga se cortaría por la mitad y la reserva quedaría congelada para siempre en `EN_PROCESO_DESPACHO` sin que nadie se entere.  
+  En nuestro código implementamos **Compensación Defensiva**: aislamos el fallo de $C_2$ en un bloque protegido, marcamos la reserva con la bandera `REQUIERE_RECONCILIACION_MANUAL` en la auditoría inmutable, y **forzamos la ejecución de $C_1$** para que M9 pase a `VENCIDA`. El sistema responde un aviso estructurado (HTTP 207 Multi-Status) para que el equipo de finanzas o una Dead Letter Queue (DLQ) concilie el pago, garantizando que el ciclo de vida de la reserva no quede trabado. Incluso creamos un switch didáctico (`desactivarCompensacionDefensiva: true`) para demostrárselo en vivo al tribunal."
 
-* **👉 Pase al siguiente compañero:** *"Para explicar cómo blindamos técnicamente esta Saga contra cortes de red, le doy la palabra a mi compañero [Nombre Int. 9]."*
+* **👉 Pase al siguiente compañero:** *"Para explicar cómo blindamos técnicamente esta Saga contra concurrencia y cortes de red, le doy la palabra a mi compañero [Nombre Int. 9]."*
 
 ---
 
-### 👤 Integrante 9 — Resiliencia en la Práctica: Idempotencia y Trazabilidad
+### 👤 Integrante 9 — Resiliencia en Concurrencia: Candado Atómico Anti-TOCTOU y OCC
 * **Tiempo:** Minuto 16:00 a 18:00
-* **Qué tener en pantalla:** La salida de la **Evidencia 4** en consola y la tabla `idempotencia`.
+* **Qué tener en pantalla:** La salida de la **Evidencia 4** en consola, el método `intentarReservarClave` en `idempotencyRepository.ts` y `actualizarEstado` con OCC en `reservationRepository.ts`.
 * **Guion hablado:**
-  > "En cualquier sistema distribuido, las fallas de red no son una excepción, son una certeza. Por eso, una Saga no puede existir sin dos mecanismos fundamentales que implementamos en M9:
+  > "En sistemas distribuidos y concurrentes, las fallas de red y las peticiones simultáneas son inevitables. Por eso, blindamos nuestra Saga con tres mecanismos de alta ingeniería:
   > 
-  > 1. **Idempotencia Estricta con `Idempotency-Key` (RF-9.10):**
-  > Como mostramos en la Evidencia 4 de nuestra demo, si un cliente o proceso reintenta la misma petición de activación con la misma clave `idem-key-exito-001`, M9 consulta su tabla `idempotencia`.
-  > Al detectar que ya fue procesada, **no vuelve a cobrar a M7 ni vuelve a pedir chofer a M5**: retorna la respuesta anterior en 1 milisegundo. Esto previene el desastre del 'doble cobro'.
+  > 1. **Candado Atómico de Idempotencia Anti-TOCTOU (`Idempotency-Key`):**
+  > La mayoría de los desarrolladores comete el error de hacer un `SELECT` para ver si la clave existe y luego ejecutar la saga. Eso tiene una falla de concurrencia clásica llamada **TOCTOU (Time-Of-Check to Time-Of-Use)**: si dos llamadas con la misma clave entran al mismo milisegundo, ambas pasan el `SELECT` y se duplica el cobro.
+  > Nosotros implementamos un **candado atómico**: antes de tocar nada, ejecutamos un `INSERT` inmediato en la tabla `idempotencia` con estado `EN_PROCESO`. Gracias a la restricción `PRIMARY KEY` a nivel motor de SQLite, la primera pasa y la segunda choca contra una pared atómica, devolviendo `HTTP 409 Conflict` de inmediato.
   > 
-  > 2. **Webhooks Idempotentes:**
-  > En `WebhookController.ts`, si M5 nos notifica dos veces la asignación de un chofer por reintentos de red, M9 detecta que ya está `ACTIVADA` y devuelve `HTTP 200` sin duplicar filas en la tabla de auditoría.
+  > 2. **Control de Concurrencia Optimista (OCC) y Bloqueo Semántico:**
+  > ¿Qué pasa si un usuario y un proceso automático intentan activar la *misma reserva* al mismo tiempo con *claves distintas*?
+  > Para evitar la anomalía de actualizaciones perdidas (*Lost Updates*), M9 aplica OCC: la transición a `EN_PROCESO_DESPACHO` exige una precondición atómica en SQL: `WHERE id = ? AND estado = 'CONFIRMADA'` envuelta en una transacción `BEGIN IMMEDIATE`. Si alguien ya cambió el estado un microsegundo antes, la segunda llamada es rechazada con `HTTP 409`.
   > 
-  > 3. **Trazabilidad Distribuida con `X-Request-Id`:**
-  > Cada petición genera o propaga un UUID en las cabeceras HTTP. Este identificador se estampa en cada línea de log a lo largo de todos los microservicios, permitiendo a los operadores reconstruir la historia completa de una Saga en segundos."
+  > 3. **Trazabilidad Distribuida y Webhooks Idempotentes:**
+  > Propagamos el UUID `X-Request-Id` en cada llamada externa para correlación de logs, y nuestros webhooks en `WebhookController.ts` son tolerantes a repeticiones: si M5 nos avisa dos veces la misma asignación, M9 reconoce el estado terminal y responde `HTTP 200` sin duplicar auditoría."
 
 * **💡 Bajada a tierra (Analogía):**
-  > *"El botón del ascensor: por más que una persona apurada lo presione 10 veces seguidas, el ascensor viene una sola vez. Eso mismo es la idempotencia en nuestra API."*
+  > *"El candado atómico es como el pestillo del baño de un avión: en el instante que entrás y girás la traba, la puerta queda en rojo ('ocupado'). Nadie más puede entrar mientras estés adentro, evitando que dos personas usen el mismo servicio al mismo tiempo."*
 
 * **⚠️ Pregunta trampa del tribunal:**
-  * *Profesor:* "¿Cómo sabe M9 distinguir si un webhook de M5 es una actualización legítima o una repetición duplicada?"
-  * *Respuesta:* "Comprobando la máquina de estados en la base de datos: si la reserva ya alcanzó el estado terminal del evento (`ACTIVADA` o `VENCIDA`), la lógica reconoce el mensaje y responde 200 sin ejecutar efectos colaterales secundarios."
+  * *Profesor:* "¿Cómo probaron que de verdad evitaron el TOCTOU y las condiciones de carrera?"
+  * *Respuesta:* "Creamos una suite de pruebas de concurrencia real (`npm run test:hardening`) que lanza ráfagas asíncronas con `Promise.all`. Demostramos que ante 2 peticiones paralelas idénticas, exactamente una adquiere el candado y la otra recibe HTTP 409. Y con nuestro switch didáctico `desactivarCandadoIdempotencia: true`, podemos apagar la protección y mostrarles cómo fallaría un sistema sin blindar."
 
-* **👉 Pase al siguiente compañero:** *"Para cerrar nuestra presentación con el análisis crítico de trade-offs, le doy la palabra a mi compañero [Nombre Int. 10]."*
+* **👉 Pase al siguiente compañero:** *"Para cerrar nuestra presentación con el análisis crítico de trade-offs y las conclusiones del equipo, le doy la palabra a mi compañero [Nombre Int. 10]."*
 
 ---
 
 ### 👤 Integrante 10 — Análisis Crítico, Matriz de Trade-offs y Cierre
 * **Tiempo:** Minuto 18:00 a 20:00
-* **Qué tener en pantalla:** La matriz de decisión (Cuándo SÍ / Cuándo NO) y los tests automatizados pasando en verde (`npm run test:all`).
+* **Qué tener en pantalla:** La matriz de decisión (Cuándo SÍ / Cuándo NO) y los tests automatizados pasando en verde (`npm run test:all` y `npm run test:hardening`).
 * **Guion hablado:**
   > "Para concluir, queremos dejar una reflexión de ingeniería: **en arquitectura de software no existen soluciones mágicas, sino elecciones de compromiso (trade-offs)**.
   > 
@@ -290,11 +292,11 @@
   > - Cuando el *Blast Radius* (radio de explosión) debe ser mínimo: si M5 colapsa, M9 sigue funcionando para consultar reservas anteriores.
   > 
   > **¿Cuándo NO aplicarlos?**
-  > - En sistemas pequeños, monolitos o MVPs: la sobrecarga operativa y cognitiva de programar compensaciones no se justifica.
+  > - En sistemas pequeños, monolitos o MVPs: la sobrecarga operativa de programar compensaciones, idempotencia atómica y OCC no se justifica.
   > - En sistemas bursátiles o de alta frecuencia donde se exija consistencia estricta instantánea y no se toleren estados intermedios.
   > - Cuando las operaciones no admitan reversión lógica (como imprimir un ticket físico o enviar un SMS).
   > 
-  > Como balance, la combinación de estos dos patrones permitió que nuestro Módulo 9 sea robusto, autónomo y resiliente dentro del ecosistema del TPI.
+  > Como valor agregado de nuestro grupo, no nos limitamos a un código demostrativo superficial: sometimos nuestra arquitectura a pruebas de estrés con `npm run test:hardening`, demostrando resiliencia ante carreras de idempotencia, concurrencia en reservas y fallos encadenados de compensación.
   > 
   > Agradecemos a los profesores por su atención y quedamos a total disposición para las preguntas del tribunal."
 
@@ -303,19 +305,32 @@
 
 * **⚠️ Pregunta trampa del tribunal:**
   * *Profesor:* "Si tuvieran que rediseñar esta solución para 10 millones de usuarios concurrentes al estilo Uber global, ¿qué cambiarían de esta implementación?"
-  * *Respuesta:* "Migraríamos las llamadas HTTP síncronas hacia un **bus de eventos asíncrono distribuido como Apache Kafka o RabbitMQ**, implementando el patrón **Transactional Outbox** para garantizar que la emisión de eventos y el commit local ocurran en una misma transacción atómica, eliminando el acoplamiento temporal de HTTP."
+  * *Respuesta:* "Migraríamos las llamadas HTTP síncronas hacia un **bus de eventos asíncrono distribuido como Apache Kafka o RabbitMQ**, implementando el patrón **Transactional Outbox** para garantizar que la emisión de eventos y el commit local ocurran en una misma transacción atómica, eliminando el acoplamiento temporal de HTTP y soportando particionado masivo."
 
 ---
 
 ## 🎯 Consejos Finales para Obtener el 10/10 en el Coloquio
 
-1. **Tener abierta la terminal lista para ejecutar:**
+1. **Tener abierta la terminal lista para ejecutar los comandos:**
    ```bash
-   cd "C:\Users\mateo\OneDrive\Desktop\demo-investigacion-grupo8"
+   cd Implementacion
+   
+   # 1. Demostración interactiva completa (Happy Path y Rollback con tablas)
    npm run demo
+
+   # 2. Pruebas funcionales de aserción (Saga exitosa y con fallo)
+   npm run test:all
+
+   # 3. Suite de blindaje y concurrencia (TOCTOU, OCC, Compensación Defensiva)
+   npm run test:hardening
+
+   # 4. (Opcional didáctico) Demostración de vulnerabilidades apagando protecciones
+   node scripts/test-reproducir-fallas.js
    ```
-2. **Tener abiertos en pestañas de VS Code los 3 archivos clave:**
-   * `src/config/database.ts` (para mostrar las 3 bases aisladas).
-   * `src/saga/activationSagaOrchestrator.ts` (para mostrar las compensaciones $C_2 \to C_1$).
-   * `scripts/run-demo.js` (para mostrar cómo se probó todo).
+2. **Tener abiertos en pestañas de VS Code los archivos clave:**
+   * `src/config/database.ts` (para mostrar las 3 bases SQLite aisladas físicamente).
+   * `src/saga/activationSagaOrchestrator.ts` (para mostrar las compensaciones $C_2 \to C_1$, la compensación defensiva y los switches didácticos).
+   * `src/repositories/idempotencyRepository.ts` (para mostrar el candado atómico anti-TOCTOU).
+   * `src/repositories/reservationRepository.ts` (para mostrar el control de concurrencia optimista con `WHERE estado = 'CONFIRMADA'`).
+   * `scripts/test-hardening.js` (para mostrar cómo se probaron las condiciones de carrera reales).
 3. **Seguridad al hablar:** Usen primero la palabra técnica formal y rematen con la analogía cotidiana. Eso demuestra al tribunal que no memorizaron de memoria, sino que entendieron el problema real de ingeniería.
