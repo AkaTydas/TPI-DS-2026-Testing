@@ -20,6 +20,10 @@ export class ActivationSagaOrchestrator {
       forzarFalloM5?: boolean;
       idempotencyKey?: string;
       requestId?: string;
+      // SWITCHES DIDÁCTICOS PARA COLOQUIO / DEMO:
+      desactivarCandadoIdempotencia?: boolean;
+      desactivarCompensacionDefensiva?: boolean;
+      desactivarControlOptimista?: boolean;
     } = {}
   ): Promise<ResultadoSaga> {
     const requestId = opciones.requestId || 'req-default';
@@ -29,20 +33,26 @@ export class ActivationSagaOrchestrator {
     Logger.info(`========== INICIANDO SAGA DE ACTIVACIÓN (Reserva: ${reservaId}) ==========`, requestId);
 
     // 0. Control de Idempotencia estricta con Candado Atómico Anti-TOCTOU (RF-9.10)
-    // NOTA PARA LA DEFENSA: Al intentar reservar la clave al inicio mediante 'INSERT INTO idempotencia',
-    // cualquier petición concurrente simultánea es frenada con HTTP 409 antes de llamar a M7 o M5.
-    const candadoIdempotencia = IdempotencyRepository.intentarReservar(idempotencyKey);
-    if (!candadoIdempotencia.exito) {
-      if (candadoIdempotencia.estado === 'COMPLETADO' && candadoIdempotencia.registro?.cuerpoRespuesta) {
-        Logger.warn(`[IDEMPOTENCIA] Solicitud ya procesada para la clave ${idempotencyKey}. Retornando respuesta cacheada.`, requestId);
-        return JSON.parse(candadoIdempotencia.registro.cuerpoRespuesta) as ResultadoSaga;
+    // SWITCH DIDÁCTICO: Si desactivarCandadoIdempotencia es true, muestra la vulnerabilidad original.
+    if (!opciones.desactivarCandadoIdempotencia) {
+      const candadoIdempotencia = IdempotencyRepository.intentarReservar(idempotencyKey);
+      if (!candadoIdempotencia.exito) {
+        if (candadoIdempotencia.estado === 'COMPLETADO' && candadoIdempotencia.registro?.cuerpoRespuesta) {
+          Logger.warn(`[IDEMPOTENCIA] Solicitud ya procesada para la clave ${idempotencyKey}. Retornando respuesta cacheada.`, requestId);
+          return JSON.parse(candadoIdempotencia.registro.cuerpoRespuesta) as ResultadoSaga;
+        }
+        Logger.warn(`[IDEMPOTENCIA] Solicitud concurrente en proceso para la clave ${idempotencyKey}. Rechazando con HTTP 409 Conflict.`, requestId);
+        throw new AppError(
+          409,
+          'Operación en proceso',
+          `Una solicitud con la clave de idempotencia "${idempotencyKey}" ya se encuentra en procesamiento activo.`
+        );
       }
-      Logger.warn(`[IDEMPOTENCIA] Solicitud concurrente en proceso para la clave ${idempotencyKey}. Rechazando con HTTP 409 Conflict.`, requestId);
-      throw new AppError(
-        409,
-        'Operación en proceso',
-        `Una solicitud con la clave de idempotencia "${idempotencyKey}" ya se encuentra en procesamiento activo.`
-      );
+    } else {
+      const cachedResponse = IdempotencyRepository.buscar(idempotencyKey);
+      if (cachedResponse && cachedResponse.cuerpoRespuesta) {
+        return JSON.parse(cachedResponse.cuerpoRespuesta) as ResultadoSaga;
+      }
     }
 
     // 1. Obtener reserva desde la base de datos exclusiva de M9
@@ -82,7 +92,7 @@ export class ActivationSagaOrchestrator {
     try {
       // -------------------------------------------------------------
       // T1 (Transacción Local M9): Poner reserva en EN_PROCESO_DESPACHO con OCC
-      // Exigimos que el estado sea estrictamente CONFIRMADA bajo transacción atómica.
+      // SWITCH DIDÁCTICO: desactivarControlOptimista permite mostrar el Lost Update sin OCC
       // -------------------------------------------------------------
       ReservationRepository.transicionarConHistorial(
         reservaId,
@@ -93,7 +103,7 @@ export class ActivationSagaOrchestrator {
           actor: 'SAGA_ORCHESTRATOR',
           detalles: { motivo: 'Inicio de despacho hacia M5', requestId }
         },
-        { estadoEsperado: 'CONFIRMADA' }
+        { estadoEsperado: opciones.desactivarControlOptimista ? undefined : 'CONFIRMADA' }
       );
       Logger.sagaStep('T1', 'M9', 'Reserva transicionada a EN_PROCESO_DESPACHO en db_m9', 'OK', requestId);
       pasos.push({
@@ -212,12 +222,14 @@ export class ActivationSagaOrchestrator {
         resultado: 'FALLO'
       });
 
-      // C2 (Acción Compensatoria M7): Liberar la pre-autorización monetaria de forma defensiva
+      // C2 (Acción Compensatoria M7): Liberar la pre-autorización monetaria
+      // SWITCH DIDÁCTICO: desactivarCompensacionDefensiva permite demostrar el crash sin try/catch
       let compensacionM7Exitosa = false;
       let errorCompensacionM7: string | null = null;
 
       if (pagoPreAutorizado) {
-        try {
+        if (opciones.desactivarCompensacionDefensiva) {
+          // Modo vulnerable: llamada directa sin try/catch
           await M7Client.liberarPreAutorizacion({ reservaId }, requestId);
           compensacionM7Exitosa = true;
           pasos.push({
@@ -227,16 +239,28 @@ export class ActivationSagaOrchestrator {
             descripcion: 'Pre-autorización monetaria cancelada. Saldo retenido = $0 en db_pagos.',
             resultado: 'COMPENSADO'
           });
-        } catch (errC2: unknown) {
-          errorCompensacionM7 = errC2 instanceof Error ? errC2.message : 'Error desconocido en M7';
-          Logger.error(`[SAGA CRITICAL] Falló la compensación C2 en M7: ${errorCompensacionM7}. Registrando alerta para reconciliación.`, requestId);
-          pasos.push({
-            paso: 'C2 - Fallo en Compensación Financiera',
-            tipo: 'C2',
-            servicio: 'M7',
-            descripcion: `No se pudo liberar el pago automáticamente: ${errorCompensacionM7}. Requiere reconciliación manual.`,
-            resultado: 'FALLO'
-          });
+        } else {
+          try {
+            await M7Client.liberarPreAutorizacion({ reservaId }, requestId);
+            compensacionM7Exitosa = true;
+            pasos.push({
+              paso: 'C2 - Compensación Financiera',
+              tipo: 'C2',
+              servicio: 'M7',
+              descripcion: 'Pre-autorización monetaria cancelada. Saldo retenido = $0 en db_pagos.',
+              resultado: 'COMPENSADO'
+            });
+          } catch (errC2: unknown) {
+            errorCompensacionM7 = errC2 instanceof Error ? errC2.message : 'Error desconocido en M7';
+            Logger.error(`[SAGA CRITICAL] Falló la compensación C2 en M7: ${errorCompensacionM7}. Registrando alerta para reconciliación.`, requestId);
+            pasos.push({
+              paso: 'C2 - Fallo en Compensación Financiera',
+              tipo: 'C2',
+              servicio: 'M7',
+              descripcion: `No se pudo liberar el pago automáticamente: ${errorCompensacionM7}. Requiere reconciliación manual.`,
+              resultado: 'FALLO'
+            });
+          }
         }
       }
 
@@ -255,7 +279,7 @@ export class ActivationSagaOrchestrator {
             errorM7: errorCompensacionM7
           }
         },
-        { estadoEsperado: 'EN_PROCESO_DESPACHO' }
+        { estadoEsperado: opciones.desactivarControlOptimista ? undefined : 'EN_PROCESO_DESPACHO' }
       );
       Logger.sagaStep('C1', 'M9', 'Reserva transicionada a VENCIDA en db_m9', 'COMPENSADO', requestId);
       pasos.push({

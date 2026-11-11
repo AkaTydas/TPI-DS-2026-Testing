@@ -11,6 +11,7 @@
     "demo": "node scripts/run-demo.js",
     "test:success": "node scripts/test-success.js",
     "test:failure": "node scripts/test-failure.js",
+    "test:hardening": "node scripts/test-hardening.js",
     "test:all": "node scripts/test-success.js && node scripts/test-failure.js"
   },
   "keywords": [
