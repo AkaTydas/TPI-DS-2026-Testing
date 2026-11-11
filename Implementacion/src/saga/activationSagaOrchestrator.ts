@@ -81,18 +81,20 @@ export class ActivationSagaOrchestrator {
 
     try {
       // -------------------------------------------------------------
-      // T1 (Transacción Local M9): Poner reserva en EN_PROCESO_DESPACHO
+      // T1 (Transacción Local M9): Poner reserva en EN_PROCESO_DESPACHO con OCC
+      // Exigimos que el estado sea estrictamente CONFIRMADA bajo transacción atómica.
       // -------------------------------------------------------------
-      ReservationRepository.actualizarEstado(reservaId, 'EN_PROCESO_DESPACHO');
-      HistoryRepository.registrar({
+      ReservationRepository.transicionarConHistorial(
         reservaId,
-        tipoEvento: 'ACTIVACION_INICIADA',
-        estadoAnterior: reserva.estado,
-        estadoNuevo: 'EN_PROCESO_DESPACHO',
-        actor: 'SAGA_ORCHESTRATOR',
-        detalles: { motivo: 'Inicio de despacho hacia M5', requestId },
-        fechaHora: new Date().toISOString()
-      });
+        'EN_PROCESO_DESPACHO',
+        {
+          tipoEvento: 'ACTIVACION_INICIADA',
+          estadoAnterior: reserva.estado,
+          actor: 'SAGA_ORCHESTRATOR',
+          detalles: { motivo: 'Inicio de despacho hacia M5', requestId }
+        },
+        { estadoEsperado: 'CONFIRMADA' }
+      );
       Logger.sagaStep('T1', 'M9', 'Reserva transicionada a EN_PROCESO_DESPACHO en db_m9', 'OK', requestId);
       pasos.push({
         paso: 'T1 - Bloqueo local de reserva',
@@ -137,26 +139,30 @@ export class ActivationSagaOrchestrator {
 
       // -------------------------------------------------------------
       // CONFIRMACIÓN DE LA SAGA (Pivotante exitosa)
+      // Transición atómica con validación de estado esperado EN_PROCESO_DESPACHO
       // -------------------------------------------------------------
-      ReservationRepository.actualizarEstado(reservaId, 'ACTIVADA', {
-        solicitudDespachoId: despacho.id,
-        conductorId: despacho.conductorId
-      });
-
-      HistoryRepository.registrar({
+      ReservationRepository.transicionarConHistorial(
         reservaId,
-        tipoEvento: 'RESERVA_ACTIVADA',
-        estadoAnterior: 'EN_PROCESO_DESPACHO',
-        estadoNuevo: 'ACTIVADA',
-        actor: 'SAGA_ORCHESTRATOR',
-        detalles: {
-          solicitudId: despacho.id,
-          conductorId: despacho.conductorId,
-          conductorNombre: despacho.conductorNombre,
-          vehiculo: despacho.vehiculo
+        'ACTIVADA',
+        {
+          tipoEvento: 'RESERVA_ACTIVADA',
+          estadoAnterior: 'EN_PROCESO_DESPACHO',
+          actor: 'SAGA_ORCHESTRATOR',
+          detalles: {
+            solicitudId: despacho.id,
+            conductorId: despacho.conductorId,
+            conductorNombre: despacho.conductorNombre,
+            vehiculo: despacho.vehiculo
+          }
         },
-        fechaHora: new Date().toISOString()
-      });
+        {
+          extras: {
+            solicitudDespachoId: despacho.id,
+            conductorId: despacho.conductorId
+          },
+          estadoEsperado: 'EN_PROCESO_DESPACHO'
+        }
+      );
 
       // Tr (Transacción Reintentable M8): Notificar al usuario
       await M8Client.enviarNotificacion(
@@ -234,22 +240,23 @@ export class ActivationSagaOrchestrator {
         }
       }
 
-      // C1 (Acción Compensatoria M9): Transición de estado a VENCIDA (Garantizada)
-      ReservationRepository.actualizarEstado(reservaId, 'VENCIDA');
-      HistoryRepository.registrar({
+      // C1 (Acción Compensatoria M9): Transición de estado a VENCIDA (Garantizada y Atómica)
+      ReservationRepository.transicionarConHistorial(
         reservaId,
-        tipoEvento: 'RESERVA_VENCIDA',
-        estadoAnterior: 'EN_PROCESO_DESPACHO',
-        estadoNuevo: 'VENCIDA',
-        actor: 'SAGA_COMPENSATION_C1',
-        detalles: {
-          motivo: errorMsg,
-          accion: 'Compensación lógica por indisponibilidad de chofer en M5',
-          estadoCompensacionM7: compensacionM7Exitosa ? 'LIBERADO' : 'REQUIERE_RECONCILIACION_MANUAL',
-          errorM7: errorCompensacionM7
+        'VENCIDA',
+        {
+          tipoEvento: 'RESERVA_VENCIDA',
+          estadoAnterior: 'EN_PROCESO_DESPACHO',
+          actor: 'SAGA_COMPENSATION_C1',
+          detalles: {
+            motivo: errorMsg,
+            accion: 'Compensación lógica por indisponibilidad de chofer en M5',
+            estadoCompensacionM7: compensacionM7Exitosa ? 'LIBERADO' : 'REQUIERE_RECONCILIACION_MANUAL',
+            errorM7: errorCompensacionM7
+          }
         },
-        fechaHora: new Date().toISOString()
-      });
+        { estadoEsperado: 'EN_PROCESO_DESPACHO' }
+      );
       Logger.sagaStep('C1', 'M9', 'Reserva transicionada a VENCIDA en db_m9', 'COMPENSADO', requestId);
       pasos.push({
         paso: 'C1 - Compensación de Estado Local',
