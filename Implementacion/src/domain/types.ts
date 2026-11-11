@@ -39,10 +39,13 @@ export interface HistorialEvento {
   fechaHora: string;
 }
 
+export type EstadoIdempotencia = 'EN_PROCESO' | 'COMPLETADO';
+
 export interface RegistroIdempotencia {
   clave: string;
-  codigoEstado: number;
-  cuerpoRespuesta: string;
+  estado: EstadoIdempotencia;
+  codigoEstado: number | null;
+  cuerpoRespuesta: string | null;
   creadoEn: string;
 }
 

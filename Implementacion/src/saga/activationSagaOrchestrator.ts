@@ -28,23 +28,34 @@ export class ActivationSagaOrchestrator {
 
     Logger.info(`========== INICIANDO SAGA DE ACTIVACIÓN (Reserva: ${reservaId}) ==========`, requestId);
 
-    // 0. Control de Idempotencia estricta (RF-9.10)
-    const cachedResponse = IdempotencyRepository.buscar(idempotencyKey);
-    if (cachedResponse) {
-      Logger.warn(`[IDEMPOTENCIA] Solicitud ya procesada para la clave ${idempotencyKey}. Retornando respuesta cacheada.`, requestId);
-      return JSON.parse(cachedResponse.cuerpoRespuesta) as ResultadoSaga;
+    // 0. Control de Idempotencia estricta con Candado Atómico Anti-TOCTOU (RF-9.10)
+    // NOTA PARA LA DEFENSA: Al intentar reservar la clave al inicio mediante 'INSERT INTO idempotencia',
+    // cualquier petición concurrente simultánea es frenada con HTTP 409 antes de llamar a M7 o M5.
+    const candadoIdempotencia = IdempotencyRepository.intentarReservar(idempotencyKey);
+    if (!candadoIdempotencia.exito) {
+      if (candadoIdempotencia.estado === 'COMPLETADO' && candadoIdempotencia.registro?.cuerpoRespuesta) {
+        Logger.warn(`[IDEMPOTENCIA] Solicitud ya procesada para la clave ${idempotencyKey}. Retornando respuesta cacheada.`, requestId);
+        return JSON.parse(candadoIdempotencia.registro.cuerpoRespuesta) as ResultadoSaga;
+      }
+      Logger.warn(`[IDEMPOTENCIA] Solicitud concurrente en proceso para la clave ${idempotencyKey}. Rechazando con HTTP 409 Conflict.`, requestId);
+      throw new AppError(
+        409,
+        'Operación en proceso',
+        `Una solicitud con la clave de idempotencia "${idempotencyKey}" ya se encuentra en procesamiento activo.`
+      );
     }
 
     // 1. Obtener reserva desde la base de datos exclusiva de M9
     const reserva = ReservationRepository.obtenerPorId(reservaId);
     if (!reserva) {
+      IdempotencyRepository.liberar(idempotencyKey);
       throw new AppError(404, 'Reserva no encontrada', `No existe la reserva con ID ${reservaId} en M9.`);
     }
 
     // Si ya está ACTIVADA, idempotencia de dominio
     if (reserva.estado === 'ACTIVADA') {
       Logger.info(`La reserva ${reservaId} ya se encuentra ACTIVADA.`, requestId);
-      return {
+      const resYaActivada: ResultadoSaga = {
         exito: true,
         reservaId,
         estadoFinal: 'ACTIVADA',
@@ -53,9 +64,12 @@ export class ActivationSagaOrchestrator {
         saldoRetenidoM7: reserva.tarifaEstimada,
         conductorAsignadoM5: reserva.conductorId
       };
+      IdempotencyRepository.completar(idempotencyKey, 200, resYaActivada);
+      return resYaActivada;
     }
 
     if (reserva.estado !== 'CONFIRMADA' && reserva.estado !== 'EN_PROCESO_DESPACHO') {
+      IdempotencyRepository.liberar(idempotencyKey);
       throw new AppError(
         409,
         'Estado incompatible',
@@ -172,7 +186,7 @@ export class ActivationSagaOrchestrator {
         conductorAsignadoM5: despacho.conductorNombre || despacho.conductorId
       };
 
-      IdempotencyRepository.guardar(idempotencyKey, 200, resultadoExito);
+      IdempotencyRepository.completar(idempotencyKey, 200, resultadoExito);
       Logger.success(`========== SAGA FINALIZADA EXITOSAMENTE (Reserva: ${reservaId}) ==========`, requestId);
       return resultadoExito;
 
@@ -255,7 +269,7 @@ export class ActivationSagaOrchestrator {
         conductorAsignadoM5: null
       };
 
-      IdempotencyRepository.guardar(idempotencyKey, 200, resultadoFallo);
+      IdempotencyRepository.completar(idempotencyKey, 200, resultadoFallo);
       Logger.warn(`========== SAGA COMPENSADA (Consistencia Eventual Lograda) ==========`, requestId);
       return resultadoFallo;
     }

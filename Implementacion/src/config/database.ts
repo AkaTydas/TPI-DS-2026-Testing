@@ -50,11 +50,18 @@ export function inicializarBasesDeDatos(): void {
 
     CREATE TABLE IF NOT EXISTS idempotencia (
       clave TEXT PRIMARY KEY,
-      codigo_estado INTEGER NOT NULL,
-      cuerpo_respuesta TEXT NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'COMPLETADO',
+      codigo_estado INTEGER,
+      cuerpo_respuesta TEXT,
       creado_en TEXT NOT NULL
     );
   `);
+
+  try {
+    dbM9.exec(`ALTER TABLE idempotencia ADD COLUMN estado TEXT NOT NULL DEFAULT 'COMPLETADO';`);
+  } catch {
+    // Columna ya existe o tabla recién creada
+  }
 
   // Esquema M7: Transacciones monetarias y pre-autorizaciones
   dbM7.exec(`
