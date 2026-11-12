@@ -7,7 +7,7 @@ const BASE_URL = `http://localhost:${PORT}`;
 
 async function run() {
   console.log('=================================================================');
-  console.log('🔬 LABORATORIO DE AUDITORÍA: ¿SON PROBLEMAS REALES O TEÓRICOS?');
+  console.log(' LABORATORIO DE AUDITORÍA: ¿SON PROBLEMAS REALES O TEÓRICOS?');
   console.log('=================================================================\n');
 
   inicializarBasesDeDatos();
@@ -22,7 +22,7 @@ async function run() {
     // -------------------------------------------------------------------------
     // EXPERIMENTO 1: Falla en la Compensación C2 (M7 caído o con error)
     // -------------------------------------------------------------------------
-    console.log('📌 EXPERIMENTO 1: ¿Qué pasa si el servicio de pagos falla al compensar?');
+    console.log('[#] EXPERIMENTO 1: ¿Qué pasa si el servicio de pagos falla al compensar?');
     console.log('Simulamos que M7 rechaza la liberación o se cae durante C2...\n');
 
     // Creamos reserva
@@ -57,12 +57,12 @@ async function run() {
 
     // Inspeccionamos la base de datos de M9
     const r1Post = dbM9.prepare('SELECT id, estado FROM reservas WHERE id = ?').get(r1.id);
-    console.log('\n🔎 Estado en m9_reservas.db tras el fallo:');
+    console.log('\n(!) Estado en m9_reservas.db tras el fallo:');
     console.log(`  Estado esperado: "VENCIDA" (o estado de error compensado)`);
     console.log(`  Estado REAL obtenido: "${r1Post.estado}"`);
 
     if (r1Post.estado === 'EN_PROCESO_DESPACHO') {
-      console.log('💥 ¡BUG CONFIRMADO! La reserva quedó bloqueada como "EN_PROCESO_DESPACHO"');
+      console.log('(!!) ¡BUG CONFIRMADO! La reserva quedó bloqueada como "EN_PROCESO_DESPACHO"');
       console.log('   y la excepción no controlada en C2 impidió que se marque como VENCIDA.\n');
     }
 
@@ -73,7 +73,7 @@ async function run() {
     // EXPERIMENTO 2: Concurrencia con Latencia de Red Real (Microservicios)
     // -------------------------------------------------------------------------
     console.log('-----------------------------------------------------------------');
-    console.log('📌 EXPERIMENTO 2: ¿Por qué en local no hubo doble cobro pero en red sí?');
+    console.log('[#] EXPERIMENTO 2: ¿Por qué en local no hubo doble cobro pero en red sí?');
     console.log('En la demo local, SQLite corre en 0ms síncronos en el hilo de Node.');
     console.log('Simulamos una llamada de red real a M7 (30ms de latencia HTTP)...\n');
 
@@ -116,7 +116,7 @@ async function run() {
     console.table(txsR2);
 
     if (txsR2.length > 1) {
-      console.log(`💥 ¡BUG DE CONCURRENCIA CONFIRMADO!`);
+      console.log(`(!!) ¡BUG DE CONCURRENCIA CONFIRMADO!`);
       console.log(`   Se generaron ${txsR2.length} transacciones de cobro en M7.`);
       console.log(`   Con apenas 30ms de latencia de red, la idempotencia falló por TOCTOU.`);
     } else {

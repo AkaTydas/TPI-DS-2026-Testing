@@ -55,9 +55,9 @@ async function run() {
     const m5Desp = dbM5.prepare('SELECT * FROM solicitudes_despacho WHERE reserva_id = ?').get(reserva.id);
     if (m5Desp.estado !== 'SIN_CONDUCTOR') throw new Error('db_despacho no está en SIN_CONDUCTOR');
 
-    console.log('✅ TEST PASÓ: Rollback lógico y transacciones compensatorias verificadas en las 3 bases de datos.\n');
+    console.log('[✔] TEST PASÓ: Rollback lógico y transacciones compensatorias verificadas en las 3 bases de datos.\n');
   } catch (err) {
-    console.error('❌ TEST FALLÓ:', err);
+    console.error('[X] TEST FALLÓ:', err);
     process.exitCode = 1;
   } finally {
     server.close();

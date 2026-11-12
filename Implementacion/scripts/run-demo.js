@@ -90,9 +90,9 @@ async function main() {
     console.log(`\n${colors.cyan}[EVIDENCIA TEMA 12] Estado en las 3 Bases de Datos Aisladas:${colors.reset}`);
     const txA = dbM7.prepare('SELECT * FROM transacciones WHERE reserva_id = ?').get(idA);
     const despA = dbM5.prepare('SELECT * FROM solicitudes_despacho WHERE reserva_id = ?').get(idA);
-    console.log(`  📁 db_m9.reservas:        Estado = ACTIVADA | Chofer = ${despA?.conductor_nombre}`);
-    console.log(`  📁 db_pagos.transacciones: Estado = ${txA?.estado} | Monto = $${txA?.monto}`);
-    console.log(`  📁 db_despacho.solicitud:  Estado = ${despA?.estado} | Chofer = ${despA?.conductor_nombre}`);
+    console.log(`  > db_m9.reservas:        Estado = ACTIVADA | Chofer = ${despA?.conductor_nombre}`);
+    console.log(`  > db_pagos.transacciones: Estado = ${txA?.estado} | Monto = $${txA?.monto}`);
+    console.log(`  > db_despacho.solicitud:  Estado = ${despA?.estado} | Chofer = ${despA?.conductor_nombre}`);
 
     await delay(1200);
 
@@ -138,9 +138,9 @@ async function main() {
     console.log(`\n${colors.cyan}[EVIDENCIA TEMA 12] Estado en las 3 Bases de Datos Aisladas tras Rollback:${colors.reset}`);
     const txB = dbM7.prepare('SELECT * FROM transacciones WHERE reserva_id = ?').get(idB);
     const despB = dbM5.prepare('SELECT * FROM solicitudes_despacho WHERE reserva_id = ?').get(idB);
-    console.log(`  📁 db_m9.reservas:        Estado = VENCIDA (Cancelación lógica)`);
-    console.log(`  📁 db_pagos.transacciones: Estado = ${txB?.estado} (Fondos devueltos al cliente)`);
-    console.log(`  📁 db_despacho.solicitud:  Estado = ${despB?.estado} (Sin conductor)`);
+    console.log(`  > db_m9.reservas:        Estado = VENCIDA (Cancelación lógica)`);
+    console.log(`  > db_pagos.transacciones: Estado = ${txB?.estado} (Fondos devueltos al cliente)`);
+    console.log(`  > db_despacho.solicitud:  Estado = ${despB?.estado} (Sin conductor)`);
 
     await delay(1200);
 
@@ -169,7 +169,7 @@ async function main() {
     const dataIdem = await resIdem.json();
     console.log(`${colors.green}✔ Respuesta Idempotente inmediata recibida sin duplicar transacciones ni historial.${colors.reset}`);
 
-    banner('🎉 DEMOSTRACIÓN FINALIZADA CON ÉXITO ABSOLUTO (100% CUMPLIMIENTO)');
+    banner('🎉 DEMOSTRACIÓN FINALIZADA CON ÉXITO ABSOLUTO(100% CUMPLIMIENTO)');
   } finally {
     server.close();
   }

@@ -50,7 +50,7 @@ async function run() {
     // =========================================================================
     // TEST 1: IDEMPOTENCIA ATÓMICA ANTI-TOCTOU (Tarea Gianna 1)
     // =========================================================================
-    console.log(`${colors.bold}📌 TEST 1: Candado Atómico de Idempotencia (Misma Clave + Latencia)${colors.reset}`);
+    console.log(`${colors.bold}>>> TEST 1: Candado Atómico de Idempotencia (Misma Clave + Latencia) <<<${colors.reset}`);
     
     // Inyectamos 30ms de latencia simulando HTTP real
     const originalPreAuto = M7Client.preAutorizarPago;
@@ -96,7 +96,7 @@ async function run() {
     // =========================================================================
     // TEST 2: CONTROL DE CONCURRENCIA OPTIMISTA (OCC) EN M9 (Tarea Gianna 3)
     // =========================================================================
-    console.log(`\n${colors.bold}📌 TEST 2: Control de Concurrencia Optimista (Claves Distintas sobre Misma Reserva)${colors.reset}`);
+    console.log(`\n${colors.bold}>>> TEST 2: Control de Concurrencia Optimista (Claves Distintas sobre Misma Reserva) <<<${colors.reset}`);
     
     const resCrear2 = await fetch(`${BASE_URL}/reservas`, {
       method: 'POST',
@@ -140,7 +140,7 @@ async function run() {
     // =========================================================================
     // TEST 3: COMPENSACIÓN DEFENSIVA EN C2 (Tarea Gianna 2)
     // =========================================================================
-    console.log(`\n${colors.bold}📌 TEST 3: Compensación Defensiva (M7 caído al devolver fondos)${colors.reset}`);
+    console.log(`\n${colors.bold}>>> TEST 3: Compensación Defensiva (M7 caído al devolver fondos) <<<${colors.reset}`);
 
     const resCrear3 = await fetch(`${BASE_URL}/reservas`, {
       method: 'POST',
@@ -179,7 +179,7 @@ async function run() {
     // =========================================================================
     // TEST 4: DEMOSTRACIÓN DE SWITCHES DIDÁCTICOS (Para el Coloquio)
     // =========================================================================
-    console.log(`\n${colors.bold}📌 TEST 4: Verificación de Switches Didácticos de Coloquio${colors.reset}`);
+    console.log(`\n${colors.bold}>>> TEST 4: Verificación de Switches Didácticos de Coloquio <<<${colors.reset}`);
 
     const resCrear4 = await fetch(`${BASE_URL}/reservas`, {
       method: 'POST',
@@ -216,7 +216,7 @@ async function run() {
 }
 
 run().catch((err) => {
-  console.error('\n❌ ERROR EN LA SUITE DE HARDENING:', err);
+  console.error('\n[X] ERROR EN LA SUITE DE HARDENING:', err);
   process.exit(1);
 });
 

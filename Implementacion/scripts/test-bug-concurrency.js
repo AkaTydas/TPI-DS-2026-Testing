@@ -5,7 +5,7 @@ const PORT = 8098;
 const BASE_URL = `http://localhost:${PORT}`;
 
 async function run() {
-  console.log('🧪 DEMOSTRANDO BUGS REALES DE CONCURRENCIA\n');
+  console.log('DEMOSTRANDO BUGS REALES DE CONCURRENCIA\n');
   inicializarBasesDeDatos();
 
   dbM9.exec('DELETE FROM reservas; DELETE FROM historial_reservas; DELETE FROM idempotencia;');
@@ -54,11 +54,11 @@ async function run() {
     console.log('  Petición B:', resp2.status, '| Éxito:', data2.exito, '| Estado final:', data2.estadoFinal);
 
     const txsM7 = dbM7.prepare('SELECT * FROM transacciones WHERE reserva_id = ?').all(reserva.id);
-    console.log('\n🔍 Inspeccionando m7_pagos.db (Transacciones registradas):');
+    console.log('\nInspeccionando m7_pagos.db (Transacciones registradas):');
     console.table(txsM7);
 
     const despachosM5 = dbM5.prepare('SELECT * FROM solicitudes_despacho WHERE reserva_id = ?').all(reserva.id);
-    console.log('🔍 Inspeccionando m5_despacho.db (Solicitudes de chofer):');
+    console.log(' Inspeccionando m5_despacho.db (Solicitudes de chofer):');
     console.table(despachosM5);
 
     // =========================================================================
