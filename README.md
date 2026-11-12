@@ -1,6 +1,7 @@
-# 📚 Recursos, Extras y Documentación - TPI
+# 📚 Recursos, Extras y Documentación — TPI Grupo 8
 
-Repositorio centralizado de soporte para el Trabajo Práctico Integrador. Funciona como espacio de trabajo colaborativo para gestionar la asignación de tareas, documentar las resoluciones técnicas del TPI de desarrollo y centralizar el avance del TPI de investigación.
+Espacio de trabajo centralizado y colaborativo del **Grupo 8** para la materia **Desarrollo de Software (UTN FRRe 2026)**.  
+Aquí se gestiona la asignación de tareas, el análisis y soporte técnico del desarrollo del **Módulo 9 (M9 - Reservas de Viajes)** y la investigación práctica con PoC ejecutable sobre **Consistencia (Patrón Saga Orquestado)** y **Persistencia (Database per Service)**.
 
 ---
 
@@ -19,55 +20,86 @@ Repositorio centralizado de soporte para el Trabajo Práctico Integrador. Funcio
 
 ---
 
-## 📂 Estructura de Carpetas
+## 📂 Estructura del Repositorio
+
+El repositorio se encuentra organizado de la siguiente manera:
 
 ```text
 .
-├── Explicaciones/   # Desglose conceptual y técnico del TPI principal (desarrollo)
-├── Investigacion/   # Resoluciones, documentación e implementación del TPI de investigación
-└── Tareas/          # Asignación de actividades, responsables y consignas
-```
-
-### 1. `Explicaciones/`
-Contiene la justificación y resolución paso a paso de las tareas del **TPI principal (TPI de desarrollo)**:
-* Detalla el **porqué** y el **cómo** de cada implementación resuelta en el proyecto base.
-* Sirve como guía de consulta conceptual para nivelar el entendimiento técnico de todo el equipo de cara a defensas o consultas docentes.
-
-### 2. `Investigacion/`
-Almacena el material y resoluciones correspondientes al **TPI de investigación**:
-* Actualmente centraliza la documentación teórica y las consignas del trabajo.
-* A futuro se dividirá en dos subcarpetas:
-  * `documentacion/`: Informes, marco teórico y análisis.
-  * `implementacion/`: Pruebas de concepto, código y entregables prácticos.
-
-### 3. `Tareas/`
-Espacio de gestión operativa y distribución del trabajo:
-* Enunciados y requerimientos específicos de cada tarea.
-* Asignación del **integrante responsable** de llevarla a cabo.
-* Seguimiento de estado de avance interno del grupo.
-
----
-
-## 🚀 Flujo de Trabajo
-
-### Sincronizar cambios antes de empezar
-```bash
-git pull origin main
-```
-
-### Subir nuevo material
-```bash
-git add .
-git commit -m "docs(tareas): actualizar asignación de responsables"
-git push origin main
+├── Documentacion/       # Base documental de investigación sobre la que se fundamentó la PoC
+├── Explicaciones/       # Guías técnicas, resoluciones y análisis conceptuales
+│   ├── TPI-Principal/   # Tareas, análisis de arquitectura y soporte del desarrollo M9
+│   └── TPI-Investigacion/# Manual de la Saga, guion de coloquio, auditorías y hardening
+├── Implementacion/      # Código fuente y PoC ejecutable en Node.js / TypeScript
+└── Tareas/              # Consignas de cátedra, distribución de tareas y planes de acción
 ```
 
 ---
 
-## ⚙️ Reglas de Convivencia y Buenas Prácticas
+### 1. `Documentacion/`
+Esta carpeta contiene los informes teóricos originales, propuestas de arquitectura y documentos de análisis elaborados durante la etapa de investigación preliminar (tanto en formato Markdown como en los PDFs entregados).
 
-1. **Pull obligatorio antes de push:** Ejecutar siempre `git pull origin main` antes de iniciar cambios o commitear para evitar conflictos innecesarios.
-2. **Priorizar Markdown (`.md`):** Para notas, explicaciones teóricas y resoluciones, usar siempre Markdown en lugar de formatos propietarios (`.docx`, etc.). Esto permite visualizar el contenido directamente en GitHub y facilita la lectura desde editores e IDEs como Antigravity.
-3. **Respetar la estructura de carpetas:** Cada archivo debe ubicarse estrictamente en la carpeta que le corresponde (`Explicaciones/`, `Investigacion/` o `Tareas/`). No dejar archivos sueltos en la raíz del repositorio, salvo configuraciones como `README.md` o `.gitignore`.
-4. **Nombres de archivo normalizados:** Nombrar archivos en minúsculas y usar guiones medios o bajos (ejemplo: `tarea-frontend-login.md`, `resumen_investigacion.md`). Evitar espacios en blanco, tildes y caracteres especiales.
-5. **Commits claros y descriptivos:** Redactar mensajes concisos indicando el área intervenida y la acción realizada (ejemplo: `docs(explicaciones): agregar detalle sobre arquitectura backend`).
+> [!NOTE]
+> **¿Por qué se llama `Documentacion/`?**  
+> Porque representa la **base documental y bibliográfica en la que se fundamentó y diseñó la implementación práctica**. Todo el bosquejo del flujo de la saga, la definición de las bases aisladas y las reglas de consistencia nacieron de estos documentos previos.
+
+---
+
+### 2. `Explicaciones/`
+Centraliza los documentos conceptuales y guías paso a paso generadas por el equipo, divididas en dos grandes ejes:
+
+* **`TPI-Principal/`**:
+  * Resoluciones detalladas de las tareas del proyecto principal de desarrollo del Módulo 9 (Tareas 1, 3, 4, 10, etc.).
+  * Informes y notas técnicas (análisis de resiliencia y circuit breakers, observaciones de arquitectura, mapeo de endpoints y alineación de commits).
+  * Diapositivas y material de apoyo para la defensa del proyecto base.
+
+* **`TPI-Investigacion/`**:
+  * **Manual Maestro de Implementación:** Documento exhaustivo del funcionamiento de la Saga Orquestada y el aislamiento de persistencia con SQLite nativo.
+  * **Guion de Exposición para 10 Integrantes:** Cronograma de 20 minutos con guion hablado, analogías y respuestas a preguntas trampa del tribunal.
+  * **Informe Consolidado:** Resumen unificado de la arquitectura y decisiones de diseño.
+  * **Auditorías de Hardening (Tareas Gianna 1 a 4):** Registro técnico de las mejoras de seguridad implementadas (candado atómico anti-TOCTOU, compensación defensiva en $C_2$, control de concurrencia optimista OCC y switches didácticos).
+
+---
+
+### 3. `Implementacion/`
+Contiene la **Prueba de Concepto (PoC) real y ejecutable** en Node.js (v24) y TypeScript:
+* **Aislamiento real de persistencia:** 3 bases de datos SQLite independientes (`m9_reservas.db`, `m7_pagos.db`, `m5_despacho.db`) sin Foreign Keys cruzadas ni acoplamiento SQL.
+* **Orquestador de Saga (`ActivationSagaOrchestrator`):** Máquina de estados con transacciones locales, pivotante ($T_p$) en M5 y rollback compensatorio inverso ($C_2 \to C_1$).
+* **Blindaje Concurrente:** Candado atómico en `idempotencia` contra carreras TOCTOU, control de concurrencia optimista (`WHERE estado = 'CONFIRMADA'`) y compensación defensiva con trazabilidad `REQUIERE_RECONCILIACION_MANUAL`.
+
+#### Comandos rápidos para probar la PoC:
+```bash
+cd Implementacion
+npm install
+npm run build
+
+# 1. Demostración interactiva completa con tablas visuales
+npm run demo
+
+# 2. Tests de aserción funcional (Happy path y Fallo compensado)
+npm run test:all
+
+# 3. Suite de blindaje y concurrencia (TOCTOU, OCC y C2)
+npm run test:hardening
+
+# 4. Demostración comparativa (vulnerable vs blindado) con switches didácticos
+node scripts/test-reproducir-fallas.js
+```
+
+---
+
+### 4. `Tareas/`
+Gestión organizativa y operativa del equipo:
+* Enunciados y pautas formales de cátedra en PDF.
+* Tablas de distribución de tareas por integrante para entregas y correcciones.
+* Planes de acción para el seguimiento del cronograma.
+
+---
+
+## 💡 Buenas Prácticas del Repositorio
+
+Para mantener el trabajo ordenado y evitar pérdidas de tiempo:
+
+1. **Sincronizar siempre al empezar:** Ejecutar `git pull origin main` antes de iniciar cualquier cambio local para evitar conflictos.
+2. **Respetar la ubicación de carpetas:** Colocar cada archivo en la carpeta que le corresponde según sea documentación teórica, explicación técnica, código o tarea organizativa.
+3. **Mensajes de commit claros:** Escribir mensajes breves que describan qué se agregó o modificó (por ejemplo: `docs: actualizar guía de coloquio`, `fix: corregir ruta en scripts`).
