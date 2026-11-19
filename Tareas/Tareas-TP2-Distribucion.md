@@ -20,7 +20,7 @@ Este documento define la asignación formal de responsabilidades para la **Entre
 | **—** | **Pablo (ArchTydas)** | Lead de Arquitectura & CI/CD | **RNF-03 / RNF-17** | Contratos OpenAPI 3.1.0, GitHub Actions CI/CD y Code Review |
 | **—** | **Teo (tutuca lopez)**| QA Lead & Testing Distribuido | **RNF-07 (TP2)** | Suite de Pruebas de Integración con RabbitMQ y Redis en Docker |
 
----
+------
 
 ## Detalle de Tareas por Integrante
 
