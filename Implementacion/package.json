@@ -8,11 +8,18 @@
     "start": "node --experimental-strip-types src/index.ts",
     "build": "tsc",
     "start:dist": "node dist/index.js",
+    "predemo": "npm run build",
     "demo": "node scripts/run-demo.js",
+    "pretest:success": "npm run build",
     "test:success": "node scripts/test-success.js",
+    "pretest:failure": "npm run build",
     "test:failure": "node scripts/test-failure.js",
+    "pretest:hardening": "npm run build",
     "test:hardening": "node scripts/test-hardening.js",
-    "test:all": "node scripts/test-success.js && node scripts/test-failure.js"
+    "pretest:coverage": "npm run build",
+    "test:coverage": "node --test scripts/test-coverage.js",
+    "pretest:all": "npm run build",
+    "test:all": "node scripts/test-success.js && node scripts/test-failure.js && node scripts/test-hardening.js && node --test scripts/test-coverage.js"
   },
   "keywords": [
     "saga-pattern",
