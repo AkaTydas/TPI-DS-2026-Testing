@@ -19,7 +19,7 @@
 
 ---
 
-## 🟢 INTEGRANTE 7: FLUJO EXITOSO (HAPPY PATH)
+## 🟢 INTEGRANTE 7 (MATEO LÓPEZ): FLUJO EXITOSO (HAPPY PATH)
 
 ### [Panel 2] Paso 1: Crear reserva válida
 ```bash
@@ -51,7 +51,7 @@ curl -s http://localhost:8090/inspeccionar-bases | jq '{
 
 ---
 
-## 🟡 INTEGRANTE 8 (PABLO): FALLO EN PIVOTANTE Y ROLLBACK ($C_2 \to C_1$)
+## 🟡 INTEGRANTE 8 (PABLO SANABRIA): FALLO EN PIVOTANTE Y ROLLBACK ($C_2 \to C_1$)
 
 ### [Panel 2] Paso 1: Crear reserva para provocar fallo
 ```bash
@@ -85,7 +85,7 @@ curl -s http://localhost:8090/inspeccionar-bases | jq '.base_datos_M7_pagos.tran
 
 ---
 
-## 🔴 INTEGRANTE 9: HARDENING, CONCURRENCIA Y WEBHOOKS
+## 🔴 INTEGRANTE 9 (AVRIL MACHUCA): HARDENING, CONCURRENCIA Y WEBHOOKS
 
 ### [Panel 2] Paso 1: Suite de Concurrencia Real con Latencia
 ```bash
@@ -114,7 +114,7 @@ curl -s -X POST http://localhost:8090/webhooks/despacho \
 
 ---
 
-## 🔵 INTEGRANTE 10: TESTING AUTOMATIZADO Y CIERRE
+## 🔵 INTEGRANTE 10 (GUSTAVO LÓPEZ): TESTING AUTOMATIZADO Y CIERRE
 
 ### [Panel 2] Paso 1: Ejecución de toda la suite de tests
 ```bash

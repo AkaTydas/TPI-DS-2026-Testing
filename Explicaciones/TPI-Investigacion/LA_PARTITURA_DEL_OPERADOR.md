@@ -120,7 +120,7 @@ curl -s -X POST http://localhost:8090/reservas/$RES_8/activar-saga \
   *(Muestra: `estado: "LIBERADO"`).*
 
 ### 4. Tu pase al siguiente compañero:
-> *"Para explicar cómo blindamos esta Saga contra problemas de concurrencia y reintentos de red, le doy la palabra a mi compañero [Nombre Int. 9]."*
+> *"Para explicar cómo blindamos esta Saga contra problemas de concurrencia y reintentos de red, le doy la palabra a mi compañera Avril Machuca."*
 
 ---
 

@@ -18,6 +18,21 @@
 └──────────────────┴────────────────────┴────────────────────┴───────────────────────────┘
 ```
 
+### 📋 Nómina Oficial de Integrantes y Asignación de Roles
+
+| # | Integrante | Legajo | Tema / Bloque Asignado |
+| :-: | :--- | :-: | :--- |
+| **1** | **Fernández D'Elia, Sol** | `29286` | Apertura, Evolución Arquitectónica (Monolito a Microservicios) y Rol de M9. |
+| **2** | **Rosin, Gianna Florencia** | `28951` | Marco Conceptual: Database per Service vs. Shared Database. |
+| **3** | **Salas, Milagros Nadir** | `28816` | Aplicación en M9, Regla de Negocio RF-9.6 (Antelación $\ge 2$ hs) y Arquitectura en Capas. |
+| **4** | **Alcaraz, Fabricio Nahuel** | `29192` | Ecosistema de M9 y Estrategias de Consulta Inter-Servicio sin JOINs. |
+| **5** | **Maciel Sanchez, Gabriel Angel** | `28872` | Adiós al Commit Global (ACID $\to$ CAP/PACELC $\to$ 2PC) y Patrón Saga. |
+| **6** | **Benítez, Agustín Nicolas** | `28372` | Anomalías de Aislamiento y Variantes de Coordinación (Coreografía vs. Orquestación). |
+| **7** | **Lopez, Mateo Jeremias** | `29868` | Circuito en Código Real: Flujo Exitoso (Happy Path $T_1 \to T_2 \to T_3 \to T_r$). |
+| **8** | **Sanabria Cayre, Ernesto Pablo** | `28909` | Manejo de Fallas en Pivotante, Rollback Lógico ($C_2 \to C_1$) y Compensación Defensiva. |
+| **9** | **Machuca, Avril Micaela** | `29061` | Resiliencia en Concurrencia: Candado Atómico Anti-TOCTOU, OCC y Webhooks. |
+| **10** | **López, Gustavo Javier** | `28818` | Análisis Crítico, Matriz de Trade-offs (Cuándo SÍ / Cuándo NO) y Testing Automatizado. |
+
 > **Regla de Oro del Equipo:**
 > 1. Cada integrante expone **2 minutos netos**.
 > 2. Estructura de cada intervención: **Concepto formal de ingeniería** + **Bajada a tierra con analogía cotidiana** + **Evidencia en código / arquitectura**.
@@ -29,7 +44,8 @@
 
 ---
 
-### 👤 Integrante 1 — Apertura, Problemática Distribuida y Rol de M9
+### 👤 Integrante 1 — Fernández D'Elia, Sol (Legajo: 29286)
+* **Tema:** Apertura, Problemática Distribuida y Rol de M9
 * **Tiempo:** Minuto 0:00 a 2:00
 * **Qué tener en pantalla:** Diapositiva de portada y diagrama del ecosistema del TPI (los 9 módulos).
 * **Guion hablado:**
@@ -48,11 +64,12 @@
   * *Profesor:* "¿Por qué en el TPI no pusimos una sola base PostgreSQL compartida con un esquema para cada grupo y nos ahorrábamos todo este lío?"
   * *Respuesta:* "Porque crearíamos el antipatrón del 'Monolito Distribuido'. Cualquier alteración en una tabla por parte de un grupo rompería las consultas de los demás, se anularía la independencia de despliegue y un bloqueo por una consulta pesada tiraría abajo a toda la plataforma."
 
-* **👉 Pase al siguiente compañero:** *"Ahora mi compañero [Nombre Int. 2] profundizará en los fundamentos teóricos del patrón Database per Service."*
+* **👉 Pase al siguiente compañero:** *"Ahora mi compañera Gianna profundizará en los fundamentos teóricos del patrón Database per Service."*
 
 ---
 
-### 👤 Integrante 2 — Marco Conceptual: Database per Service y Data Ownership
+### 👤 Integrante 2 — Rosin, Gianna Florencia (Legajo: 28951)
+* **Tema:** Marco Conceptual: Database per Service y Data Ownership
 * **Tiempo:** Minuto 2:00 a 4:00
 * **Qué tener en pantalla:** Diagrama comparativo: *Shared Database (Antipatrón)* vs. *Database per Service*.
 * **Guion hablado:**
@@ -74,7 +91,7 @@
   * *Profesor:* "Si un servicio necesita datos de otro con muchísima frecuencia, ¿no es súper ineficiente hacer llamadas HTTP en vez de un simple JOIN de SQL?"
   * *Respuesta:* "Tiene una penalización en latencia de red, pero es el precio que se paga para evitar el acoplamiento rígido de esquemas. Si la latencia es crítica, se usan patrones de optimización como *Event-Carried State Transfer* o *CQRS*, donde el servicio interesado mantiene una copia local de solo lectura alimentada por eventos asíncronos."
 
-* **👉 Pase al siguiente compañero:** *"Ahora mi compañero [Nombre Int. 3] mostrará cómo se traduce esto en la arquitectura concreta de nuestro Módulo 9."*
+* **👉 Pase al siguiente compañero:** *"Ahora mi compañera Milagros mostrará cómo se traduce esto en la arquitectura concreta de nuestro Módulo 9."*
 
 ---
 
@@ -82,7 +99,8 @@
 
 ---
 
-### 👤 Integrante 3 — Aplicación de Persistencia Aislada en M9
+### 👤 Integrante 3 — Salas, Milagros Nadir (Legajo: 28816)
+* **Tema:** Aplicación de Persistencia Aislada en M9
 * **Tiempo:** Minuto 4:00 a 6:00
 * **Qué tener en pantalla:** El archivo `01_init_schema.sql` (o `data/m9_reservas.db`) mostrando la tabla `reservas`.
 * **Guion hablado:**
@@ -104,11 +122,12 @@
   * *Profesor:* "Si no hay Foreign Keys, ¿cómo garantizan la integridad referencial? ¿Qué pasa si eliminan un cliente en M2 y M9 tiene reservas asociadas?"
   * *Respuesta:* "En microservicios, la integridad referencial física de base de datos se reemplaza por **integridad lógica de negocio**. M2 nunca hace borrados físicos (`hard delete`), sino bajas lógicas (`soft delete`) o emite eventos de baja. Y M9, antes de crear cualquier reserva, valida el estado del cliente a través de su cliente HTTP."
 
-* **👉 Pase al siguiente compañero:** *"Para explicar cómo M9 se comunica con los demás módulos preservando este aislamiento, le doy la palabra a mi compañero [Nombre Int. 4]."*
+* **👉 Pase al siguiente compañero:** *"Para explicar cómo M9 se comunica con los demás módulos preservando este aislamiento, le doy la palabra a mi compañero Fabricio."*
 
 ---
 
-### 👤 Integrante 4 — Resiliencia ante Cambios de Esquema y Contratos de Integración
+### 👤 Integrante 4 — Alcaraz, Fabricio Nahuel (Legajo: 29192)
+* **Tema:** Resiliencia ante Cambios de Esquema y Contratos de Integración
 * **Tiempo:** Minuto 6:00 a 8:00
 * **Qué tener en pantalla:** El código de `src/clients/m2Client.ts` mostrando la validación del cliente.
 * **Guion hablado:**
@@ -128,7 +147,7 @@
   * *Profesor:* "¿Qué pasa si M2 actualiza su sistema y cambia un campo obligatorio en el contrato OpenAPI rompiendo a M9?"
   * *Respuesta:* "Para evitar eso en arquitecturas maduras se utilizan **versiones de API** (por ejemplo, `/api/v1` y `/api/v2`) y pruebas de contrato automatizadas con herramientas como Pact, garantizando retrocompatibilidad antes de desplegar en producción."
 
-* **👉 Pase al siguiente compañero:** *"Ahora mi compañero [Nombre Int. 5] nos introducirá al segundo gran eje: el Patrón Saga y la consistencia distribuida."*
+* **👉 Pase al siguiente compañero:** *"Ahora mi compañero Gabriel nos introducirá al segundo gran eje: el Patrón Saga y la consistencia distribuida."*
 
 ---
 
@@ -136,7 +155,8 @@
 
 ---
 
-### 👤 Integrante 5 — Marco Conceptual: Patrón Saga y Fallo de 2PC
+### 👤 Integrante 5 — Maciel Sanchez, Gabriel Angel (Legajo: 28872)
+* **Tema:** Marco Conceptual: Patrón Saga y Fallo de 2PC
 * **Tiempo:** Minuto 8:00 a 10:00
 * **Qué tener en pantalla:** Diapositiva con la clasificación formal: $T_c, T_p, T_r$ y la fórmula de compensación ($C_2 \to C_1$).
 * **Guion hablado:**
@@ -159,11 +179,12 @@
   * *Profesor:* "¿Una Saga garantiza aislamiento (la 'I' de ACID)?"
   * *Respuesta:* "No. La falta de aislamiento es la mayor limitación teórica de una Saga, porque los commits locales intermedios son visibles antes de que la saga termine. Se mitiga mediante diseño de dominio usando banderas de estado explícitas, como `EN_PROCESO_DESPACHO` o `PENDIENTE_PAGO`."
 
-* **👉 Pase al siguiente compañero:** *"Ahora mi compañero [Nombre Int. 6] explicará las variantes de coordinación y por qué elegimos Orquestación en M9."*
+* **👉 Pase al siguiente compañero:** *"Ahora mi compañero Agustín explicará las variantes de coordinación y por qué elegimos Orquestación en M9."*
 
 ---
 
-### 👤 Integrante 6 — Variantes de Saga: Orquestación vs. Coreografía y Elección en M9
+### 👤 Integrante 6 — Benítez, Agustín Nicolas (Legajo: 28372)
+* **Tema:** Variantes de Saga: Orquestación vs. Coreografía y Elección en M9
 * **Tiempo:** Minuto 10:00 a 12:00
 * **Qué tener en pantalla:** Tabla comparativa: *Coreografía vs. Orquestación*.
 * **Guion hablado:**
@@ -185,7 +206,7 @@
   * *Profesor:* "¿El orquestador no se convierte en un cuello de botella o en un punto único de falla (SPOF)?"
   * *Respuesta:* "No, siempre que el orquestador sea *stateless* o persista sus estados de transición en la base de datos de forma idempotente, como hace M9. Si la instancia del orquestador se cae, cualquier otra réplica del contenedor puede levantar el estado de la reserva y continuar el flujo sin pérdida de datos."
 
-* **👉 Pase al siguiente compañero:** *"A continuación, mis compañeros van a mostrar la implementación en código real y la demostración práctica."*
+* **👉 Pase al siguiente compañero:** *"A continuación, mi compañero Mateo va a mostrar la implementación en código real y el flujo exitoso."*
 
 ---
 
@@ -193,7 +214,8 @@
 
 ---
 
-### 👤 Integrante 7 — El Circuito en Código: Creación y Flujo Exitoso
+### 👤 Integrante 7 — Lopez, Mateo Jeremias (Legajo: 29868)
+* **Tema:** El Circuito en Código: Creación y Flujo Exitoso
 * **Tiempo:** Minuto 12:00 a 14:00
 * **Qué tener en pantalla:** Ejecución del `npm run demo` (Escenario 1) y el código de `ActivationSagaOrchestrator.ts`.
 * **Guion hablado:**
@@ -217,11 +239,12 @@
   * *Profesor:* "¿Por qué M9 no asigna el chofer directamente en vez de delegárselo a M5?"
   * *Respuesta:* "Por el principio de Responsabilidad Única y separación de dominios de Domain-Driven Design: M9 solo es experto en reservas anticipadas y agendas. La optimización de flotas en tiempo real, radios de cercanía y matching de vehículos es competencia exclusiva de M5."
 
-* **👉 Pase al siguiente compañero:** *"Ahora mi compañero [Nombre Int. 8] mostrará la parte más interesante: qué pasa cuando las cosas fallan."*
+* **👉 Pase al siguiente compañero:** *"Ahora mi compañero Pablo mostrará la parte más interesante: qué pasa cuando las cosas fallan."*
 
 ---
 
-### 👤 Integrante 8 — Manejo de Fallas y Acciones Compensatorias ($C_2 \to C_1$) y Compensación Defensiva
+### 👤 Integrante 8 — Sanabria Cayre, Ernesto Pablo (Legajo: 28909)
+* **Tema:** Manejo de Fallas y Acciones Compensatorias ($C_2 \to C_1$) y Compensación Defensiva
 * **Tiempo:** Minuto 14:00 a 16:00
 * **Qué tener en pantalla:** Ejecución del `npm run demo` (Escenario 2) y las líneas de compensación defensiva en `src/saga/activationSagaOrchestrator.ts`.
 * **Guion hablado:**
@@ -248,11 +271,12 @@
   * *Respuesta:* "Una implementación novata dejaría escapar la excepción: el servidor respondería HTTP 500, la saga se cortaría por la mitad y la reserva quedaría congelada para siempre en `EN_PROCESO_DESPACHO` sin que nadie se entere.  
   En nuestro código implementamos **Compensación Defensiva**: aislamos el fallo de $C_2$ en un bloque protegido, marcamos la reserva con la bandera `REQUIERE_RECONCILIACION_MANUAL` en la auditoría inmutable, y **forzamos la ejecución de $C_1$** para que M9 pase a `VENCIDA`. El sistema responde un aviso estructurado (HTTP 207 Multi-Status) para que el equipo de finanzas o una Dead Letter Queue (DLQ) concilie el pago, garantizando que el ciclo de vida de la reserva no quede trabado. Incluso creamos un switch didáctico (`desactivarCompensacionDefensiva: true`) para demostrárselo en vivo al tribunal."
 
-* **👉 Pase al siguiente compañero:** *"Para explicar cómo blindamos técnicamente esta Saga contra concurrencia y cortes de red, le doy la palabra a mi compañero [Nombre Int. 9]."*
+* **👉 Pase al siguiente compañero:** *"Para explicar cómo blindamos técnicamente esta Saga contra concurrencia y cortes de red, le doy la palabra a mi compañera Avril."*
 
 ---
 
-### 👤 Integrante 9 — Resiliencia en Concurrencia: Candado Atómico Anti-TOCTOU y OCC
+### 👤 Integrante 9 — Machuca, Avril Micaela (Legajo: 29061)
+* **Tema:** Resiliencia en Concurrencia: Candado Atómico Anti-TOCTOU y OCC
 * **Tiempo:** Minuto 16:00 a 18:00
 * **Qué tener en pantalla:** La salida de la **Evidencia 4** en consola, el método `intentarReservarClave` en `idempotencyRepository.ts` y `actualizarEstado` con OCC en `reservationRepository.ts`.
 * **Guion hablado:**
@@ -276,11 +300,12 @@
   * *Profesor:* "¿Cómo probaron que de verdad evitaron el TOCTOU y las condiciones de carrera?"
   * *Respuesta:* "Creamos una suite de pruebas de concurrencia real (`npm run test:hardening`) que lanza ráfagas asíncronas con `Promise.all`. Demostramos que ante 2 peticiones paralelas idénticas, exactamente una adquiere el candado y la otra recibe HTTP 409. Y con nuestro switch didáctico `desactivarCandadoIdempotencia: true`, podemos apagar la protección y mostrarles cómo fallaría un sistema sin blindar."
 
-* **👉 Pase al siguiente compañero:** *"Para cerrar nuestra presentación con el análisis crítico de trade-offs y las conclusiones del equipo, le doy la palabra a mi compañero [Nombre Int. 10]."*
+* **👉 Pase al siguiente compañero:** *"Para cerrar nuestra presentación con el análisis crítico de trade-offs y las conclusiones del equipo, le doy la palabra a mi compañero Gustavo."*
 
 ---
 
-### 👤 Integrante 10 — Análisis Crítico, Matriz de Trade-offs y Cierre
+### 👤 Integrante 10 — López, Gustavo Javier (Legajo: 28818)
+* **Tema:** Análisis Crítico, Matriz de Trade-offs y Cierre
 * **Tiempo:** Minuto 18:00 a 20:00
 * **Qué tener en pantalla:** La matriz de decisión (Cuándo SÍ / Cuándo NO) y los tests automatizados pasando en verde (`npm run test:all` y `npm run test:hardening`).
 * **Guion hablado:**

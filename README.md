@@ -5,18 +5,20 @@ Aquí se gestiona la asignación de tareas, el análisis y soporte técnico del 
 
 ---
 
-## 👥 Integrantes del Equipo
+## 👥 Integrantes y Roles de Exposición — Grupo 8 (UTN FRRe 2026)
 
-* **Alcaraz, Fabricio Nahuel** — Legajo: `29192`
-* **Benítez, Agustín Nicolas** — Legajo: `28372`
-* **Fernández D'Elia, Sol** — Legajo: `29286`
-* **López, Gustavo Javier** — Legajo: `28818`
-* **Lopez, Mateo Jeremias** — Legajo: `29868`
-* **Machuca, Avril Micaela** — Legajo: `29061`
-* **Maciel Sanchez, Gabriel Angel** — Legajo: `28872`
-* **Rosin, Gianna Florencia** — Legajo: `28951`
-* **Salas, Milagros Nadir** — Legajo: `28816`
-* **Sanabria Cayre, Ernesto Pablo** — Legajo: `28909`
+| # | Integrante | Legajo | Rol en la Investigación y Exposición Oral |
+| :-: | :--- | :-: | :--- |
+| **1** | **Fernández D'Elia, Sol** | `29286` | Introducción, Evolución Arquitectónica (Monolito a Microservicios) y planteo del problema de consistencia. |
+| **2** | **Rosin, Gianna Florencia** | `28951` | Tema 12: Database per Service vs. Antipatrón Monolito Distribuido (Shared Database). |
+| **3** | **Salas, Milagros Nadir** | `28816` | Aplicación de Database per Service en M9, Regla de Negocio RF-9.6 (Antelación $\ge 2$ hs) y Prototipo en Capas. |
+| **4** | **Alcaraz, Fabricio Nahuel** | `29192` | Ecosistema de M9 (M5 Despacho, M7 Pagos, M8 Notificaciones) y Estrategias de Consulta Inter-Servicio sin JOINs. |
+| **5** | **Maciel Sanchez, Gabriel Angel** | `28872` | Tema 11: Adiós al Commit Global (ACID $\to$ CAP/PACELC $\to$ 2PC vs Saga) y Fundamentos del Patrón Saga. |
+| **6** | **Benítez, Agustín Nicolas** | `28372` | El Problema de la Falta de Aislamiento (ACID sin 'I') y Variantes de Coordinación (Coreografía vs. Orquestación en M9). |
+| **7** | **Lopez, Mateo Jeremias** | `29868` | Circuito de Activación en Código Real: Flujo Exitoso (Happy Path $T_1 \to T_2 \to T_3 \to T_r$). |
+| **8** | **Sanabria Cayre, Ernesto Pablo** | `28909` | Manejo de Fallas en Pivotante, Rollback Lógico ($C_2 \to C_1$), Compensación Defensiva y Operador de Terminal. |
+| **9** | **Machuca, Avril Micaela** | `29061` | Resiliencia Operativa y Hardening: Candado Atómico Anti-TOCTOU, OCC y Webhooks Idempotentes. |
+| **10** | **López, Gustavo Javier** | `28818` | Matriz de Decisión / Trade-offs (Cuándo SÍ / Cuándo NO), Suite de Testing Automatizado y Cierre. |
 
 ---
 
