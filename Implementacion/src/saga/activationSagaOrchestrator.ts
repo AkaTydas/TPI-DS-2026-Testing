@@ -1,0 +1,356 @@
+import { ReservationRepository } from '../repositories/reservationRepository.js';
+import { HistoryRepository } from '../repositories/historyRepository.js';
+import { IdempotencyRepository } from '../repositories/idempotencyRepository.js';
+import { M7Client } from '../clients/m7Client.js';
+import { M5Client } from '../clients/m5Client.js';
+import { M8Client } from '../clients/m8Client.js';
+import { Logger } from '../utils/logger.js';
+import { AppError } from '../domain/errors.js';
+import { ResultadoSaga, SagaPasoLog } from '../domain/types.js';
+
+export class ActivationSagaOrchestrator {
+  /**
+   * Orquestador de la Saga de Activación y Despacho.
+   * Coordina las transacciones locales entre M9, M7 y M5 implementando
+   * rollback lógico mediante acciones compensatorias inversas.
+   */
+  public static async ejecutarSaga(
+    reservaId: string,
+    opciones: {
+      forzarFalloM5?: boolean;
+      idempotencyKey?: string;
+      requestId?: string;
+      // SWITCHES DIDÁCTICOS PARA COLOQUIO / DEMO:
+      desactivarCandadoIdempotencia?: boolean;
+      desactivarCompensacionDefensiva?: boolean;
+      desactivarControlOptimista?: boolean;
+    } = {}
+  ): Promise<ResultadoSaga> {
+    const requestId = opciones.requestId || 'req-default';
+    const idempotencyKey = opciones.idempotencyKey || `idem-${reservaId}`;
+    const pasos: SagaPasoLog[] = [];
+
+    Logger.info(`========== INICIANDO SAGA DE ACTIVACIÓN (Reserva: ${reservaId}) ==========`, requestId);
+
+    // 0. Control de Idempotencia estricta con Candado Atómico Anti-TOCTOU (RF-9.10)
+    // SWITCH DIDÁCTICO: Si desactivarCandadoIdempotencia es true, muestra la vulnerabilidad original.
+    if (!opciones.desactivarCandadoIdempotencia) {
+      const candadoIdempotencia = IdempotencyRepository.intentarReservar(idempotencyKey);
+      if (!candadoIdempotencia.exito) {
+        if (candadoIdempotencia.estado === 'COMPLETADO' && candadoIdempotencia.registro?.cuerpoRespuesta) {
+          Logger.warn(`[IDEMPOTENCIA] Solicitud ya procesada para la clave ${idempotencyKey}. Retornando respuesta cacheada.`, requestId);
+          return JSON.parse(candadoIdempotencia.registro.cuerpoRespuesta) as ResultadoSaga;
+        }
+        Logger.warn(`[IDEMPOTENCIA] Solicitud concurrente en proceso para la clave ${idempotencyKey}. Rechazando con HTTP 409 Conflict.`, requestId);
+        throw new AppError(
+          409,
+          'Operación en proceso',
+          `Una solicitud con la clave de idempotencia "${idempotencyKey}" ya se encuentra en procesamiento activo.`
+        );
+      }
+    } else {
+      const cachedResponse = IdempotencyRepository.buscar(idempotencyKey);
+      if (cachedResponse && cachedResponse.cuerpoRespuesta) {
+        return JSON.parse(cachedResponse.cuerpoRespuesta) as ResultadoSaga;
+      }
+    }
+
+    // 1. Obtener reserva desde la base de datos exclusiva de M9
+    const reserva = ReservationRepository.obtenerPorId(reservaId);
+    if (!reserva) {
+      IdempotencyRepository.liberar(idempotencyKey);
+      throw new AppError(404, 'Reserva no encontrada', `No existe la reserva con ID ${reservaId} en M9.`);
+    }
+
+    // Si ya está ACTIVADA, idempotencia de dominio
+    if (reserva.estado === 'ACTIVADA') {
+      Logger.info(`La reserva ${reservaId} ya se encuentra ACTIVADA.`, requestId);
+      const resYaActivada: ResultadoSaga = {
+        exito: true,
+        reservaId,
+        estadoFinal: 'ACTIVADA',
+        mensaje: 'La reserva ya fue activada con anterioridad.',
+        pasosEjecutados: [],
+        saldoRetenidoM7: reserva.tarifaEstimada,
+        conductorAsignadoM5: reserva.conductorId
+      };
+      IdempotencyRepository.completar(idempotencyKey, 200, resYaActivada);
+      return resYaActivada;
+    }
+
+    if (reserva.estado !== 'CONFIRMADA' && reserva.estado !== 'EN_PROCESO_DESPACHO') {
+      IdempotencyRepository.liberar(idempotencyKey);
+      throw new AppError(
+        409,
+        'Estado incompatible',
+        `Solo reservas en estado CONFIRMADA pueden ser activadas en despacho. Estado actual: ${reserva.estado}`
+      );
+    }
+
+    let t1Completado = false;
+    let pagoPreAutorizado = false;
+
+    try {
+      // -------------------------------------------------------------
+      // T1 (Transacción Local M9): Poner reserva en EN_PROCESO_DESPACHO con OCC
+      // SWITCH DIDÁCTICO: desactivarControlOptimista permite mostrar el Lost Update sin OCC
+      // -------------------------------------------------------------
+      ReservationRepository.transicionarConHistorial(
+        reservaId,
+        'EN_PROCESO_DESPACHO',
+        {
+          tipoEvento: 'ACTIVACION_INICIADA',
+          estadoAnterior: reserva.estado,
+          actor: 'SAGA_ORCHESTRATOR',
+          detalles: { motivo: 'Inicio de despacho hacia M5', requestId }
+        },
+        { estadoEsperado: opciones.desactivarControlOptimista ? undefined : 'CONFIRMADA' }
+      );
+      t1Completado = true;
+      Logger.sagaStep('T1', 'M9', 'Reserva transicionada a EN_PROCESO_DESPACHO en db_m9', 'OK', requestId);
+      pasos.push({
+        paso: 'T1 - Bloqueo local de reserva',
+        tipo: 'Tc',
+        servicio: 'M9',
+        descripcion: 'Reserva marcada como EN_PROCESO_DESPACHO en db_m9',
+        resultado: 'OK'
+      });
+
+      // -------------------------------------------------------------
+      // T2 (Transacción Compensable M7): Retención de fondos financieros
+      // -------------------------------------------------------------
+      const txPago = await M7Client.preAutorizarPago(
+        { reservaId, monto: reserva.tarifaEstimada },
+        requestId
+      );
+      pagoPreAutorizado = true;
+      pasos.push({
+        paso: 'T2 - Pre-autorización financiera',
+        tipo: 'Tc',
+        servicio: 'M7',
+        descripcion: `Retención de $${reserva.tarifaEstimada.toFixed(2)} en db_pagos (TX: ${txPago.id})`,
+        resultado: 'OK'
+      });
+
+      // -------------------------------------------------------------
+      // T3 (Transacción Pivotante M5): Búsqueda y asignación de conductor
+      // ¡ESTE ES EL PUNTO DE NO RETORNO!
+      // -------------------------------------------------------------
+      const despacho = await M5Client.solicitarDespacho(
+        { reservaId, forzarFallo: opciones.forzarFalloM5 },
+        idempotencyKey,
+        requestId
+      );
+      pasos.push({
+        paso: 'T3 - Transacción Pivotante (Despacho)',
+        tipo: 'Tp',
+        servicio: 'M5',
+        descripcion: `Chofer ${despacho.conductorNombre} asignado (Despacho: ${despacho.id})`,
+        resultado: 'OK'
+      });
+
+      // -------------------------------------------------------------
+      // CONFIRMACIÓN DE LA SAGA (Pivotante exitosa)
+      // Transición atómica con validación de estado esperado EN_PROCESO_DESPACHO
+      // -------------------------------------------------------------
+      ReservationRepository.transicionarConHistorial(
+        reservaId,
+        'ACTIVADA',
+        {
+          tipoEvento: 'RESERVA_ACTIVADA',
+          estadoAnterior: 'EN_PROCESO_DESPACHO',
+          actor: 'SAGA_ORCHESTRATOR',
+          detalles: {
+            solicitudId: despacho.id,
+            conductorId: despacho.conductorId,
+            conductorNombre: despacho.conductorNombre,
+            vehiculo: despacho.vehiculo
+          }
+        },
+        {
+          extras: {
+            solicitudDespachoId: despacho.id,
+            conductorId: despacho.conductorId
+          },
+          estadoEsperado: 'EN_PROCESO_DESPACHO'
+        }
+      );
+
+      // Tr (Transacción Reintentable M8): Notificar al usuario
+      await M8Client.enviarNotificacion(
+        {
+          tipoEvento: 'RESERVA_ACTIVADA',
+          reservaId,
+          clienteId: reserva.clienteId,
+          mensaje: `¡Tu viaje fue confirmado! Conductor: ${despacho.conductorNombre}.`
+        },
+        requestId
+      );
+      pasos.push({
+        paso: 'Tr - Notificación a Pasajero',
+        tipo: 'Tr',
+        servicio: 'M8',
+        descripcion: 'Notificación de conductor en camino enviada al cliente',
+        resultado: 'OK'
+      });
+
+      const resultadoExito: ResultadoSaga = {
+        exito: true,
+        reservaId,
+        estadoFinal: 'ACTIVADA',
+        mensaje: 'Saga completada con éxito. Conductor asignado y consistencia preservada.',
+        pasosEjecutados: pasos,
+        saldoRetenidoM7: reserva.tarifaEstimada,
+        conductorAsignadoM5: despacho.conductorNombre || despacho.conductorId
+      };
+
+      IdempotencyRepository.completar(idempotencyKey, 200, resultadoExito);
+      Logger.success(`========== SAGA FINALIZADA EXITOSAMENTE (Reserva: ${reservaId}) ==========`, requestId);
+      return resultadoExito;
+
+    } catch (error: unknown) {
+      // Si T1 no llegó a completarse (ej. conflicto OCC 409), no hay nada que compensar
+      if (!t1Completado) {
+        IdempotencyRepository.liberar(idempotencyKey);
+        throw error;
+      }
+
+      // =============================================================
+      // FALLO DETECTADO -> EJECUCIÓN DE TRANSACCIONES COMPENSATORIAS
+      // =============================================================
+      const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
+      Logger.error(`[SAGA ALERT] Falla en la ejecución de la Saga: ${errorMsg}`, requestId);
+      Logger.warn('[SAGA COORDINATOR] Disparando acciones compensatorias en orden inverso...', requestId);
+
+      if (!pagoPreAutorizado) {
+        pasos.push({
+          paso: 'T2 - Falla en Pre-autorización Financiera',
+          tipo: 'Tc',
+          servicio: 'M7',
+          descripcion: errorMsg,
+          resultado: 'FALLO'
+        });
+      } else {
+        pasos.push({
+          paso: 'T3 - Falla en Matching de Conductor',
+          tipo: 'Tp',
+          servicio: 'M5',
+          descripcion: errorMsg,
+          resultado: 'FALLO'
+        });
+      }
+
+      // C2 (Acción Compensatoria M7): Liberar la pre-autorización monetaria solo si T2 tuvo éxito
+      // SWITCH DIDÁCTICO: desactivarCompensacionDefensiva permite demostrar el crash sin try/catch
+      let compensacionM7Exitosa = !pagoPreAutorizado;
+      let errorCompensacionM7: string | null = null;
+
+      if (pagoPreAutorizado) {
+        if (opciones.desactivarCompensacionDefensiva) {
+          // Modo vulnerable: llamada directa sin try/catch
+          await M7Client.liberarPreAutorizacion({ reservaId }, requestId);
+          compensacionM7Exitosa = true;
+          pasos.push({
+            paso: 'C2 - Compensación Financiera',
+            tipo: 'C2',
+            servicio: 'M7',
+            descripcion: 'Pre-autorización monetaria cancelada. Saldo retenido = $0 en db_pagos.',
+            resultado: 'COMPENSADO'
+          });
+        } else {
+          try {
+            await M7Client.liberarPreAutorizacion({ reservaId }, requestId);
+            compensacionM7Exitosa = true;
+            pasos.push({
+              paso: 'C2 - Compensación Financiera',
+              tipo: 'C2',
+              servicio: 'M7',
+              descripcion: 'Pre-autorización monetaria cancelada. Saldo retenido = $0 en db_pagos.',
+              resultado: 'COMPENSADO'
+            });
+          } catch (errC2: unknown) {
+            errorCompensacionM7 = errC2 instanceof Error ? errC2.message : 'Error desconocido en M7';
+            Logger.error(`[SAGA CRITICAL] Falló la compensación C2 en M7: ${errorCompensacionM7}. Registrando alerta para reconciliación.`, requestId);
+            pasos.push({
+              paso: 'C2 - Fallo en Compensación Financiera',
+              tipo: 'C2',
+              servicio: 'M7',
+              descripcion: `No se pudo liberar el pago automáticamente: ${errorCompensacionM7}. Requiere reconciliación manual.`,
+              resultado: 'FALLO'
+            });
+          }
+        }
+      }
+
+      const estadoCompensacionM7 = !pagoPreAutorizado
+        ? 'NO_APLICA'
+        : compensacionM7Exitosa
+          ? 'LIBERADO'
+          : 'REQUIERE_RECONCILIACION_MANUAL';
+
+      // C1 (Acción Compensatoria M9): Transición de estado a VENCIDA (Garantizada y Atómica)
+      ReservationRepository.transicionarConHistorial(
+        reservaId,
+        'VENCIDA',
+        {
+          tipoEvento: 'RESERVA_VENCIDA',
+          estadoAnterior: 'EN_PROCESO_DESPACHO',
+          actor: 'SAGA_COMPENSATION_C1',
+          detalles: {
+            motivo: errorMsg,
+            accion: pagoPreAutorizado
+              ? 'Compensación lógica por indisponibilidad de chofer en M5'
+              : 'Compensación lógica C1 por fallo en pre-autorización financiera en M7',
+            estadoCompensacionM7,
+            errorM7: errorCompensacionM7
+          }
+        },
+        { estadoEsperado: opciones.desactivarControlOptimista ? undefined : 'EN_PROCESO_DESPACHO' }
+      );
+      Logger.sagaStep('C1', 'M9', 'Reserva transicionada a VENCIDA en db_m9', 'COMPENSADO', requestId);
+      pasos.push({
+        paso: 'C1 - Compensación de Estado Local',
+        tipo: 'C1',
+        servicio: 'M9',
+        descripcion: 'Reserva marcada como VENCIDA con auditoría inmutable en db_m9.',
+        resultado: 'COMPENSADO'
+      });
+
+      // Tr (Notificación de disculpas al cliente vía M8)
+      await M8Client.enviarNotificacion(
+        {
+          tipoEvento: 'RESERVA_VENCIDA',
+          reservaId,
+          clienteId: reserva.clienteId,
+          mensaje: compensacionM7Exitosa
+            ? 'No se pudo completar la activación de tu reserva. No se realizó ningún cargo en tu tarjeta.'
+            : 'No se encontraron conductores en la zona. El cobro está en proceso de revisión manual y será devuelto.'
+        },
+        requestId
+      );
+      pasos.push({
+        paso: 'Tr - Notificación de Cancelación',
+        tipo: 'Tr',
+        servicio: 'M8',
+        descripcion: 'Notificación de disculpa y estado enviada al cliente',
+        resultado: 'OK'
+      });
+
+      const resultadoFallo: ResultadoSaga = {
+        exito: false,
+        reservaId,
+        estadoFinal: 'VENCIDA',
+        mensaje: compensacionM7Exitosa
+          ? `La reserva falló y se aplicó rollback lógico: ${errorMsg}`
+          : `La reserva falló y pasó a VENCIDA, pero la pasarela M7 requiere reconciliación manual: ${errorCompensacionM7}`,
+        pasosEjecutados: pasos,
+        saldoRetenidoM7: compensacionM7Exitosa ? 0 : reserva.tarifaEstimada,
+        conductorAsignadoM5: null
+      };
+
+      IdempotencyRepository.completar(idempotencyKey, 200, resultadoFallo);
+      Logger.warn(`========== SAGA COMPENSADA (Consistencia Eventual Lograda) ==========`, requestId);
+      return resultadoFallo;
+    }
+  }
+}

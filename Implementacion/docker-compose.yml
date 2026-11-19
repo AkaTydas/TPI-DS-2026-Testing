@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  demo-saga-m9:
+    build: .
+    container_name: demo-saga-grupo8
+    ports:
+      - "8090:8090"
+    environment:
+      - PORT=8090
+      - NODE_ENV=production
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
