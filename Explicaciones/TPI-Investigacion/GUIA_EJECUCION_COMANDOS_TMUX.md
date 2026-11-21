@@ -19,6 +19,39 @@
 
 ---
 
+## 🔍 CONSULTA COMPLETA DE CADA BASE DE DATOS (SIN FILTRADO)
+
+Para mirar a ojo todas las filas de cada subsistema en el **Panel 3**:
+
+### 1. Ver Base M9 Completa (Reservas, Historial y Claves de Idempotencia)
+```bash
+curl -s http://localhost:8090/inspeccionar-bases | jq .base_datos_M9_reservas
+```
+*(O directo en SQLite con formato tabla):*
+```bash
+sqlite3 data/m9_reservas.db "SELECT id, cliente_id, estado, tarifa_estimada, conductor_id FROM reservas;" -table
+```
+
+### 2. Ver Base M7 Completa (Transacciones Financieras y Saldos)
+```bash
+curl -s http://localhost:8090/inspeccionar-bases | jq .base_datos_M7_pagos
+```
+*(O directo en SQLite con formato tabla):*
+```bash
+sqlite3 data/m7_pagos.db "SELECT id, reserva_id, monto, estado, fecha_hora FROM transacciones;" -table
+```
+
+### 3. Ver Base M5 Completa (Solicitudes de Despacho y Choferes)
+```bash
+curl -s http://localhost:8090/inspeccionar-bases | jq .base_datos_M5_despacho
+```
+*(O directo en SQLite con formato tabla):*
+```bash
+sqlite3 data/m5_despacho.db "SELECT id, reserva_id, estado, conductor_nombre, vehiculo FROM solicitudes_despacho;" -table
+```
+
+---
+
 ## 🟢 INTEGRANTE 7 (MATEO LÓPEZ): FLUJO EXITOSO (HAPPY PATH)
 
 ### [Panel 2] Paso 1: Crear reserva válida
