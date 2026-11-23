@@ -18,6 +18,7 @@
 | 5 | `b04f18b` | `Fix authorization bypass, PATCH bugs, UUID and route validations, and add write concurrency locks` | RF-9.1, RF-9.6, RF-9.7, RNF-08, RNF-09, RNF-12 |
 | 6 | `14b7e89` | `Implement RF-9.8 reminders, RF-9.11 auto-expiration, and harden activation concurrency and webhook state machine` | RF-9.8, RF-9.9, RF-9.10, RF-9.11, RNF-08 |
 | 7 | `f8acf9e` | `Fix Docker Compose Keycloak env, add Redis and RabbitMQ to CI, add concurrency and security integration tests, and update TP2 docs` | RNF-04, RNF-07, RNF-17, RNF-20 |
+| 8 | `f344c89` | `Restore DevOps CI workflow file to original state until real integration tests` | RNF-17 (Preservar workflow de DevOps sin cambios) |
 
 > **Alcance preservado intencionalmente:**
 > * No se modificaron los endpoints/DTOs de clientes HTTP hacia otros módulos (Sección 2 de contratos inter-módulo), para ajustarlos de una sola vez cuando todos los grupos publiquen sus contratos definitivos.
@@ -152,3 +153,10 @@ Implementación base de los 3 requisitos restantes de TP2:
   * `.github/workflows/ci.yml`: Se sumaron los servicios `redis:7-alpine` y `rabbitmq:3-management-alpine` con healthchecks y variables `REDIS_URL`/`RABBITMQ_URL`.
   * `tests/integration/concurrencyAndSecurity.test.ts`: Nueva suite de 9 tests de integración verificando bypass de idempotencia (`403`), validación UUID (`400`), `origen === destino` (`400`), límites de paginación (`400`), `PATCH` de `zonaHoraria` + `valorAnterior`/`rolActor`, anti-IDOR en `CONDUCTOR`, rechazo de webhook desde `tarifas-be` (`403`) y sobre `CANCELADA` (`409`), activación paralela (M5 llamado 1 sola vez) y cancelación paralela (M7 llamado 1 sola vez, `200` + `409`).
   * `README.md` y `package.json`: Documentación actualizada integralmente a TP1 + TP2 con diagrama de arquitectura Mermaid, tabla completa de endpoints, guías de Docker/k6/OTel y cobertura de pruebas.
+
+---
+
+### Commit 8 — `f344c89`
+**`Restore DevOps CI workflow file to original state until real integration tests`**
+
+* **Motivo:** En `NODE_ENV=test` los tests actuales corren con fallback en memoria para Redis y RabbitMQ (sin requerir servicios reales levantados en GitHub Actions). Se restauró `.github/workflows/ci.yml` exactamente al estado dejado por el equipo de DevOps (5to año) para no interferir con su pipeline; cuando se activen pruebas de integración distribuida reales (`TEST_REAL_REDIS=true` / `TEST_REAL_RABBITMQ=true`), se volverán a sumar ambos servicios al CI.
