@@ -102,7 +102,7 @@ curl -s -X POST http://localhost:8090/reservas/$RES_8/activar-saga \
   -H "Idempotency-Key: key-falla-$RES_8" \
   -d '{"forzarFalloM5": true}' | jq .
 ```
-*Qué hace:* Corre $T_1$ $\to$ $T_2$ $\to$ Falla en $T_3$ (M5 sin choferes). Orquestador atrapa error y ejecuta $C_2$ (libera pago en M7) y $C_1$ (marca `VENCIDA` en M9). Devuelve HTTP 422.
+*Qué hace:* Corre $T_1$ $\to$ $T_2$ $\to$ Falla en $T_3$ (M5 sin choferes). Orquestador atrapa error y ejecuta $C_2$ (libera pago en M7) y $C_1$ (marca `VENCIDA` en M9). Devuelve `HTTP 200` con `exito: false` y `estadoFinal: "VENCIDA"`.
 
 ### [Panel 3] Paso 3: Verificar Auditoría Inmutable en M9
 ```bash
@@ -118,32 +118,19 @@ curl -s http://localhost:8090/inspeccionar-bases | jq '.base_datos_M7_pagos.tran
 
 ---
 
-## 🔴 INTEGRANTE 9 (AVRIL MACHUCA): HARDENING, CONCURRENCIA Y WEBHOOKS
+## 🔴 INTEGRANTE 9 (AVRIL MACHUCA): HARDENING Y CONCURRENCIA
 
-### [Panel 2] Paso 1: Suite de Concurrencia Real con Latencia
+### [Panel 2] Paso 1: Suite de Hardening y Concurrencia Real
 ```bash
 node scripts/test-hardening.js
 ```
-*Qué hace:* Corre en verde los tests de concurrencia:
+*Qué hace:* Corre en verde los 4 tests de hardening:
 - Candado Atómico Anti-TOCTOU: ráfaga paralela con misma clave $\to$ HTTP 200 y HTTP 409 Conflict.
 - OCC: ráfaga paralela con claves distintas a la misma reserva $\to$ HTTP 200 y HTTP 409 Conflict.
-- Compensación Defensiva: M7 caído durante $C_2$ $\to$ garantiza $C_1$ y marca `REQUIERE_RECONCILIACION_MANUAL`.
+- Compensación Defensiva: M7 caído durante $C_2$ $\to$ garantiza $C_1$ (`VENCIDA`) y marca `REQUIERE_RECONCILIACION_MANUAL`.
+- Switch didáctico `desactivarCompensacionDefensiva: true` $\to$ demuestra el crash HTTP 500 sin protección.
 
-### [Panel 2] Paso 2: Webhook de Viaje Iniciado (RF-9.7)
-```bash
-curl -s -X POST http://localhost:8090/webhooks/despacho \
-  -H "Content-Type: application/json" \
-  -d '{"evento":"VIAJE_INICIADO","reservaId":"'$RES_7'","detalles":{"horaInicio":"2026-11-19T20:00:00Z"}}' | jq .
-```
-*Qué hace:* Simula callback de M5 avisando que el chofer recogió al pasajero. M9 transiciona la reserva a `EN_CURSO`.
-
-### [Panel 2] Paso 3: Webhook de Viaje Finalizado (RF-9.8)
-```bash
-curl -s -X POST http://localhost:8090/webhooks/despacho \
-  -H "Content-Type: application/json" \
-  -d '{"evento":"VIAJE_FINALIZADO","reservaId":"'$RES_7'","detalles":{"horaFin":"2026-11-19T20:25:00Z","distanciaKm":8.4}}' | jq .
-```
-*Qué hace:* Simula callback de M5 avisando que el viaje terminó. M9 transiciona a `FINALIZADA`.
+*(Nota: Los webhooks idempotentes y el caché de idempotencia los cubre automáticamente `npm run test:coverage` dentro de `npm run test:all` en el turno del Int. 10; si necesitás tirarlos a mano como Plan B, están en `COMANDOS_MANUALES_PASO_A_PASO.md`).*
 
 ---
 

@@ -110,13 +110,15 @@ curl -s -X POST http://localhost:8090/reservas/$RES_FALLO/activar-saga \
   -H "Idempotency-Key: key-falla-$RES_FALLO" \
   -d '{"forzarFalloM5": true}' | jq .
 ```
-* **Resultado esperado:** `HTTP 422 Unprocessable Entity`
+* **Resultado esperado:** `HTTP 200 OK` (respuesta estructurada de fallo compensado):
   ```json
   {
     "exito": false,
     "reservaId": "...",
     "estadoFinal": "VENCIDA",
-    "mensaje": "Saga fallida pero compensada con éxito. Fondos liberados y estado actualizado."
+    "mensaje": "La reserva falló y se aplicó rollback lógico: M5: No se encontraron conductores disponibles en la zona en el tiempo límite.",
+    "saldoRetenidoM7": 0,
+    "conductorAsignadoM5": null
   }
   ```
 
@@ -212,80 +214,73 @@ curl -s -X POST http://localhost:8090/reservas/$RES_EXITO/activar-saga \
 
 ---
 
-### 3. Switch Didáctico: Desactivar Candado Atómico de Idempotencia
-Muestra cómo operaría un sistema novato sin candado anti-TOCTOU:
-```bash
-curl -s -X POST http://localhost:8090/reservas/$RES_EXITO/activar-saga \
-  -H "Content-Type: application/json" \
-  -d '{
-    "desactivarCandadoIdempotencia": true
-  }' | jq .
-```
+### 3. Nota sobre los Switches Didácticos (`desactivarCandadoIdempotencia` / `desactivarControlOptimista`)
+Los switches didácticos se envían en el body de `POST /reservas/:id/activar-saga`, pero pensados para reservas que **aún estén en `CONFIRMADA`** (si usás `$RES_EXITO`, la idempotencia de dominio corta antes porque ya está `ACTIVADA`).
+* `desactivarCandadoIdempotencia: true`: omite el candado `EN_PROCESO` anti-TOCTOU y solo consulta caché al final.
+* `desactivarControlOptimista: true`: omite `WHERE estado = 'CONFIRMADA'` en el `UPDATE` de `T1`.
+* `desactivarCompensacionDefensiva: true`: se verifica con mock de caída en M7 ejecutando `node scripts/test-hardening.js` (Test 4 $\to$ devuelve `HTTP 500`).
 
 ---
 
-### 4. Switch Didáctico: Desactivar Control de Concurrencia Optimista (OCC)
-Muestra cómo operaría un sistema sin la cláusula `WHERE estado = 'CONFIRMADA'`:
+### 4. Webhooks Idempotentes Manuales de Despacho (`/webhooks/despacho`)
+Endpoint real implementado en `WebhookController.ts` para recibir callbacks de M5 (`resultado: "CONFIRMADA"` o `"VENCIDA"`).
+
+#### A. Crear una reserva en `CONFIRMADA` para probar el Webhook
 ```bash
-curl -s -X POST http://localhost:8090/reservas/$RES_EXITO/activar-saga \
+RES_WH=$(curl -s -X POST http://localhost:8090/reservas \
   -H "Content-Type: application/json" \
-  -d '{
-    "desactivarControlOptimista": true
-  }' | jq .
+  -d '{"clienteId":"cli-wh","origen":"Centro","destino":"Terminal","tarifaEstimada":3500}' | jq -r .reserva.id)
+echo "Reserva para Webhook: $RES_WH"
 ```
 
----
-
-### 5. Webhooks Asíncronos Manuales de Ciclo de Vida (RF-9.7 y RF-9.8)
-M5 nos envía callbacks HTTP a medida que el auto realiza el recorrido:
-
-#### A. Webhook: Chofer inicia el viaje (RF-9.7)
+#### B. Webhook 1: M5 confirma chofer (`resultado: "CONFIRMADA"`)
 ```bash
 curl -s -X POST http://localhost:8090/webhooks/despacho \
   -H "Content-Type: application/json" \
   -d '{
-    "evento": "VIAJE_INICIADO",
-    "reservaId": "'$RES_EXITO'",
-    "detalles": {
-      "horaInicio": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
-      "observacion": "Pasajero a bordo"
-    }
+    "reservaId": "'$RES_WH'",
+    "resultado": "CONFIRMADA",
+    "conductorId": "cond-001",
+    "conductorNombre": "Hernán Fernández"
   }' | jq .
 ```
-* **Verificar estado en M9:**
+* **Resultado esperado:** `HTTP 200 OK` con `"estado": "ACTIVADA"`.
+* **Verificar estado e historial en M9:**
   ```bash
-  sqlite3 data/m9_reservas.db "SELECT id, estado FROM reservas WHERE id = '$RES_EXITO';" -table
+  sqlite3 data/m9_reservas.db "SELECT id, estado, conductor_id FROM reservas WHERE id = '$RES_WH';" -table
+  curl -s http://localhost:8090/reservas/$RES_WH/historial | jq '.totalEventos'
   ```
-  *(La reserva transiciona a `EN_CURSO`).*
 
-#### B. Webhook: Chofer finaliza el viaje (RF-9.8)
+#### C. Idempotencia en Webhooks: Reenvío duplicado por fallo de red
+Volvemos a enviar **exactamente el mismo webhook** de arriba:
 ```bash
 curl -s -X POST http://localhost:8090/webhooks/despacho \
   -H "Content-Type: application/json" \
   -d '{
-    "evento": "VIAJE_FINALIZADO",
-    "reservaId": "'$RES_EXITO'",
-    "detalles": {
-      "horaFin": "'$(date -u +"%Y-%m-%dT%H:%M:%SZ")'",
-      "distanciaKm": 12.5
-    }
+    "reservaId": "'$RES_WH'",
+    "resultado": "CONFIRMADA",
+    "conductorId": "cond-001",
+    "conductorNombre": "Hernán Fernández"
   }' | jq .
 ```
-* **Verificar estado en M9:**
+* **Resultado esperado:** Responde `HTTP 200 OK` con `"mensaje": "Aviso ya procesado previamente (Idempotente)."` y `"estadoActual": "ACTIVADA"`.
+* **Comprobar que NO duplicó eventos en auditoría:**
   ```bash
-  sqlite3 data/m9_reservas.db "SELECT id, estado FROM reservas WHERE id = '$RES_EXITO';" -table
+  curl -s http://localhost:8090/reservas/$RES_WH/historial | jq '.totalEventos'
   ```
-  *(La reserva transiciona a `FINALIZADA`).*
+  *(El número de eventos se mantiene exactamente igual).*
 
-#### C. Idempotencia en Webhooks: Reintento por fallo de red
-Si M5 reenvía el webhook `VIAJE_FINALIZADO` por error de red:
+#### D. Webhook de rechazo (`resultado: "VENCIDA"`) sobre otra reserva
 ```bash
+RES_WH_FAIL=$(curl -s -X POST http://localhost:8090/reservas \
+  -H "Content-Type: application/json" \
+  -d '{"clienteId":"cli-wh-fail","origen":"Centro","destino":"Campus","tarifaEstimada":3000}' | jq -r .reserva.id)
+
 curl -s -X POST http://localhost:8090/webhooks/despacho \
   -H "Content-Type: application/json" \
   -d '{
-    "evento": "VIAJE_FINALIZADO",
-    "reservaId": "'$RES_EXITO'",
-    "detalles": { "horaFin": "2026-11-19T20:25:00Z" }
+    "reservaId": "'$RES_WH_FAIL'",
+    "resultado": "VENCIDA"
   }' | jq .
 ```
-* **Resultado:** Responde `HTTP 200 OK` reconociendo que ya estaba finalizada, sin duplicar registros en el historial de auditoría.
+* **Resultado esperado:** Marca la reserva como `VENCIDA` en M9 con `actor: "M5_DESPACHO_WEBHOOK"`.

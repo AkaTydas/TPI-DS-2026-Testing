@@ -269,7 +269,7 @@
 * **⚠️ Pregunta trampa del tribunal (¡La que define la máxima nota!):**
   * *Profesor:* "¿Qué pasa si la acción compensatoria también falla? (Ejemplo: se cae M7 Pagos justo cuando intentamos devolver la plata)."
   * *Respuesta:* "Una implementación novata dejaría escapar la excepción: el servidor respondería HTTP 500, la saga se cortaría por la mitad y la reserva quedaría congelada para siempre en `EN_PROCESO_DESPACHO` sin que nadie se entere.  
-  En nuestro código implementamos **Compensación Defensiva**: aislamos el fallo de $C_2$ en un bloque protegido, marcamos la reserva con la bandera `REQUIERE_RECONCILIACION_MANUAL` en la auditoría inmutable, y **forzamos la ejecución de $C_1$** para que M9 pase a `VENCIDA`. El sistema responde un aviso estructurado (HTTP 207 Multi-Status) para que el equipo de finanzas o una Dead Letter Queue (DLQ) concilie el pago, garantizando que el ciclo de vida de la reserva no quede trabado. Incluso creamos un switch didáctico (`desactivarCompensacionDefensiva: true`) para demostrárselo en vivo al tribunal."
+  En nuestro código implementamos **Compensación Defensiva**: aislamos el fallo de $C_2$ en un bloque protegido, marcamos la reserva con la bandera `REQUIERE_RECONCILIACION_MANUAL` en la auditoría inmutable, y **forzamos la ejecución de $C_1$** para que M9 pase a `VENCIDA`. El sistema responde de forma controlada (`HTTP 200` con `exito: false`, `estadoFinal: "VENCIDA"` y el detalle de reconciliación pendiente) para que el equipo de finanzas o una Dead Letter Queue (DLQ) concilie el pago, garantizando que el ciclo de vida de la reserva no quede trabado. Incluso creamos un switch didáctico (`desactivarCompensacionDefensiva: true`) para demostrar en vivo el crash `HTTP 500` de una implementación ingenua."
 
 * **👉 Pase al siguiente compañero:** *"Para explicar cómo blindamos técnicamente esta Saga contra concurrencia y cortes de red, le doy la palabra a mi compañera Avril."*
 
@@ -297,8 +297,8 @@
   > *"El candado atómico es como el pestillo del baño de un avión: en el instante que entrás y girás la traba, la puerta queda en rojo ('ocupado'). Nadie más puede entrar mientras estés adentro, evitando que dos personas usen el mismo servicio al mismo tiempo."*
 
 * **⚠️ Pregunta trampa del tribunal:**
-  * *Profesor:* "¿Cómo probaron que de verdad evitaron el TOCTOU y las condiciones de carrera?"
-  * *Respuesta:* "Creamos una suite de pruebas de concurrencia real (`npm run test:hardening`) que lanza ráfagas asíncronas con `Promise.all`. Demostramos que ante 2 peticiones paralelas idénticas, exactamente una adquiere el candado y la otra recibe HTTP 409. Y con nuestro switch didáctico `desactivarCandadoIdempotencia: true`, podemos apagar la protección y mostrarles cómo fallaría un sistema sin blindar."
+  * *Profesor:* "¿Cómo probaron que de verdad evitaron el TOCTOU, las condiciones de carrera y los webhooks duplicados?"
+  * *Respuesta:* "Creamos dos suites complementarias: `npm run test:hardening`, que inyecta latencia simulada y lanza ráfagas asíncronas con `Promise.all` demostrando que ante peticiones paralelas exactamente una gana y la otra recibe `HTTP 409` (tanto por TOCTOU como por OCC) además de verificar la compensación defensiva; y `npm run test:coverage` (ejecutada dentro de `npm run test:all`), que valida entre otros casos que el envío duplicado del webhook `/webhooks/despacho` responde `HTTP 200` sin duplicar filas en `historial_reservas`."
 
 * **👉 Pase al siguiente compañero:** *"Para cerrar nuestra presentación con el análisis crítico de trade-offs y las conclusiones del equipo, le doy la palabra a mi compañero Gustavo."*
 
