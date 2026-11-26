@@ -12,7 +12,7 @@
   ```bash
   cd ~/UTN/3ro/Desarrollo/Extras-TPI/TPI-DS-2026-Testing/Implementacion && clear
   ```
-* **Panel 3 (Derecha Abajo):** Terminal de Auditoría (Consultas con jq)
+* **Panel 3 (Derecha Abajo):** Terminal de Auditoría (`sqlite3 -table`)
   ```bash
   cd ~/UTN/3ro/Desarrollo/Extras-TPI/TPI-DS-2026-Testing/Implementacion && clear
   ```
@@ -23,29 +23,21 @@
 
 Para mirar a ojo todas las filas de cada subsistema en el **Panel 3**:
 
-### 1. Ver Base M9 Completa (Reservas, Historial y Claves de Idempotencia)
-```bash
-curl -s http://localhost:8090/inspeccionar-bases | jq .base_datos_M9_reservas
-```
-*(O directo en SQLite con formato tabla):*
+### 1. Ver Base M9 Completa (Reservas y Auditoría)
 ```bash
 sqlite3 data/m9_reservas.db "SELECT id, cliente_id, estado, tarifa_estimada, conductor_id FROM reservas;" -table
 ```
+*(Historial inmutable completo):*
+```bash
+sqlite3 data/m9_reservas.db "SELECT id, reserva_id, tipo_evento, estado_nuevo, actor FROM historial_reservas;" -table
+```
 
 ### 2. Ver Base M7 Completa (Transacciones Financieras y Saldos)
-```bash
-curl -s http://localhost:8090/inspeccionar-bases | jq .base_datos_M7_pagos
-```
-*(O directo en SQLite con formato tabla):*
 ```bash
 sqlite3 data/m7_pagos.db "SELECT id, reserva_id, monto, estado, fecha_hora FROM transacciones;" -table
 ```
 
 ### 3. Ver Base M5 Completa (Solicitudes de Despacho y Choferes)
-```bash
-curl -s http://localhost:8090/inspeccionar-bases | jq .base_datos_M5_despacho
-```
-*(O directo en SQLite con formato tabla):*
 ```bash
 sqlite3 data/m5_despacho.db "SELECT id, reserva_id, estado, conductor_nombre, vehiculo FROM solicitudes_despacho;" -table
 ```
@@ -74,13 +66,11 @@ curl -s -X POST http://localhost:8090/reservas/$RES_7/activar-saga \
 
 ### [Panel 3] Paso 3: Verificar estado en las 3 bases de datos
 ```bash
-curl -s http://localhost:8090/inspeccionar-bases | jq '{
-  reserva_M9: .base_datos_M9_reservas.reservas[-1].estado,
-  pago_M7: .base_datos_M7_pagos.transacciones[-1].estado,
-  chofer_M5: .base_datos_M5_despacho.solicitudes[-1].conductor_nombre
-}'
+sqlite3 data/m9_reservas.db "SELECT id, cliente_id, estado, conductor_id FROM reservas ORDER BY creado_en DESC LIMIT 3;" -table
+sqlite3 data/m7_pagos.db "SELECT id, reserva_id, monto, estado FROM transacciones ORDER BY fecha_hora DESC LIMIT 3;" -table
+sqlite3 data/m5_despacho.db "SELECT id, reserva_id, estado, conductor_nombre FROM solicitudes_despacho ORDER BY fecha_hora DESC LIMIT 3;" -table
 ```
-*Qué hace:* Muestra que las 3 bases físicas se comitearon (`ACTIVADA`, `PRE_AUTORIZADO`, `Hernán Fernández`).
+*Qué hace:* Muestra en tablas las últimas filas de cada base física (`cli-demo` en `ACTIVADA`, `PRE_AUTORIZADO`, `Hernán Fernández`), sin depender de variables del Panel 2.
 
 ---
 
@@ -104,17 +94,19 @@ curl -s -X POST http://localhost:8090/reservas/$RES_8/activar-saga \
 ```
 *Qué hace:* Corre $T_1$ $\to$ $T_2$ $\to$ Falla en $T_3$ (M5 sin choferes). Orquestador atrapa error y ejecuta $C_2$ (libera pago en M7) y $C_1$ (marca `VENCIDA` en M9). Devuelve `HTTP 200` con `exito: false` y `estadoFinal: "VENCIDA"`.
 
-### [Panel 3] Paso 3: Verificar Auditoría Inmutable en M9
+### [Panel 3] Paso 3: Verificar Auditoría Inmutable en M9 (Historial + Reserva)
 ```bash
-curl -s http://localhost:8090/reservas/$RES_8/historial | jq '.historial[-1]'
+sqlite3 data/m9_reservas.db "SELECT id, cliente_id, estado, conductor_id FROM reservas ORDER BY creado_en DESC LIMIT 3;" -table
+sqlite3 data/m9_reservas.db "SELECT id, reserva_id, tipo_evento, estado_nuevo, actor FROM historial_reservas ORDER BY id DESC LIMIT 4;" -table
 ```
-*Qué hace:* Muestra el último evento: `actor: "SAGA_COMPENSATION_C1"`, `nuevoEstado: "VENCIDA"`, `estadoCompensacionM7: "LIBERADO"`.
+*Qué hace:* Mostrás la fila de `cli-falla` en estado `VENCIDA` y su traza en `historial_reservas` (`RESERVA_CREADA` $\to$ `ACTIVACION_INICIADA` $\to$ `RESERVA_VENCIDA` con `actor: SAGA_COMPENSATION_C1`).
 
-### [Panel 3] Paso 4: Verificar Saldo \$0 en M7 (Pagos)
+### [Panel 3] Paso 4: Verificar Saldo \$0 en M7 (Pagos) y Fallo en M5
 ```bash
-curl -s http://localhost:8090/inspeccionar-bases | jq '.base_datos_M7_pagos.transacciones[] | select(.reserva_id=="'$RES_8'")'
+sqlite3 data/m7_pagos.db "SELECT id, reserva_id, monto, estado FROM transacciones ORDER BY fecha_hora DESC LIMIT 3;" -table
+sqlite3 data/m5_despacho.db "SELECT id, reserva_id, estado, conductor_nombre FROM solicitudes_despacho ORDER BY fecha_hora DESC LIMIT 3;" -table
 ```
-*Qué hace:* Confirma que la transacción en M7 pasó a `LIBERADO` (cero dinero retenido).
+*Qué hace:* Confirma que la transacción de esa reserva en M7 pasó a `LIBERADO` (cero dinero retenido) y en M5 quedó registrada como `SIN_CONDUCTOR`.
 
 ---
 

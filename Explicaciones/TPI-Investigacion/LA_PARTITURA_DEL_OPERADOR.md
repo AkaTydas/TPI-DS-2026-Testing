@@ -65,13 +65,11 @@ curl -s -X POST http://localhost:8090/reservas/$RES_7/activar-saga \
   `T1 (M9) -> Tc (M7: $3500) -> Tp (M5: Chofer Hernán) -> Tr (M8: Notificación) -> SAGA FINALIZADA`.
 * **En Panel 3 (Auditoría):** Corrés:
   ```bash
-  curl -s http://localhost:8090/inspeccionar-bases | jq '{
-    reserva_M9: .base_datos_M9_reservas.reservas[-1].estado,
-    pago_M7: .base_datos_M7_pagos.transacciones[-1].estado,
-    chofer_M5: .base_datos_M5_despacho.solicitudes[-1].conductor_nombre
-  }'
+  sqlite3 data/m9_reservas.db "SELECT id, cliente_id, estado, conductor_id FROM reservas ORDER BY creado_en DESC LIMIT 3;" -table
+  sqlite3 data/m7_pagos.db "SELECT id, reserva_id, monto, estado FROM transacciones ORDER BY fecha_hora DESC LIMIT 3;" -table
+  sqlite3 data/m5_despacho.db "SELECT id, reserva_id, estado, conductor_nombre FROM solicitudes_despacho ORDER BY fecha_hora DESC LIMIT 3;" -table
   ```
-  *(Se ve: `reserva_M9: "ACTIVADA"`, `pago_M7: "PRE_AUTORIZADO"`, `chofer_M5: "Hernán Fernández"`).*
+  *(Se ve: `cli-demo` en `ACTIVADA`, `PRE_AUTORIZADO`, `Hernán Fernández`).*
 
 ---
 
@@ -108,16 +106,12 @@ curl -s -X POST http://localhost:8090/reservas/$RES_8/activar-saga \
 ### 3. Qué mostrás:
 * **En Panel 1 (Logs):**
   `Tp (M5: FALLO) -> [SAGA ALERT] -> C2 (M7: Fondos liberados) -> C1 (M9: Reserva VENCIDA) -> SAGA COMPENSADA`.
-* **En Panel 3 (Auditoría):** Corrés:
+* **En Panel 3 (Auditoría en M9 y saldo \$0 en M7):** Corrés:
   ```bash
-  curl -s http://localhost:8090/reservas/$RES_8/historial | jq '.historial[-1]'
+  sqlite3 data/m9_reservas.db "SELECT id, reserva_id, tipo_evento, estado_nuevo, actor FROM historial_reservas ORDER BY id DESC LIMIT 4;" -table
+  sqlite3 data/m7_pagos.db "SELECT id, reserva_id, monto, estado FROM transacciones ORDER BY fecha_hora DESC LIMIT 3;" -table
   ```
-  *(Muestra en grande: `actor: "SAGA_COMPENSATION_C1"`, `nuevoEstado: "VENCIDA"`, `estadoCompensacionM7: "LIBERADO"`).*
-* **En Panel 3 (Verificar M7 libre de cobro):**
-  ```bash
-  curl -s http://localhost:8090/inspeccionar-bases | jq '.base_datos_M7_pagos.transacciones[] | select(.reserva_id=="'$RES_8'")'
-  ```
-  *(Muestra: `estado: "LIBERADO"`).*
+  *(Se ve: `actor: SAGA_COMPENSATION_C1`, `estado_nuevo: VENCIDA`, y en M7 `estado: LIBERADO`).*
 
 ### 4. Tu pase al siguiente compañero:
 > *"Para explicar cómo blindamos esta Saga contra problemas de concurrencia y reintentos de red, le doy la palabra a mi compañera Avril Machuca."*

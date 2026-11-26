@@ -140,12 +140,11 @@ sqlite3 data/m5_despacho.db "SELECT id, reserva_id, estado FROM solicitudes_desp
 
 ### 4. Consultar el Historial Inmutable de Auditoría en M9 (Evento $C_1$)
 ```bash
-curl -s http://localhost:8090/reservas/$RES_FALLO/historial | jq '.historial[-1]'
+sqlite3 data/m9_reservas.db "SELECT id, reserva_id, tipo_evento, estado_nuevo, actor, detalles FROM historial_reservas WHERE reserva_id = '$RES_FALLO' ORDER BY id ASC;" -table
 ```
 * **Qué verificar:**
   - `actor`: `"SAGA_COMPENSATION_C1"`
-  - `estadoAnterior`: `"EN_PROCESO_DESPACHO"`
-  - `nuevoEstado`: `"VENCIDA"`
+  - `estado_nuevo`: `"VENCIDA"`
   - `detalles`: `"motivo": "M5: No se encontraron conductores disponibles en la zona..."`, `"estadoCompensacionM7": "LIBERADO"`.
 
 ---
@@ -248,7 +247,7 @@ curl -s -X POST http://localhost:8090/webhooks/despacho \
 * **Verificar estado e historial en M9:**
   ```bash
   sqlite3 data/m9_reservas.db "SELECT id, estado, conductor_id FROM reservas WHERE id = '$RES_WH';" -table
-  curl -s http://localhost:8090/reservas/$RES_WH/historial | jq '.totalEventos'
+  sqlite3 data/m9_reservas.db "SELECT id, reserva_id, tipo_evento, estado_nuevo, actor FROM historial_reservas WHERE reserva_id = '$RES_WH';" -table
   ```
 
 #### C. Idempotencia en Webhooks: Reenvío duplicado por fallo de red
@@ -266,9 +265,9 @@ curl -s -X POST http://localhost:8090/webhooks/despacho \
 * **Resultado esperado:** Responde `HTTP 200 OK` con `"mensaje": "Aviso ya procesado previamente (Idempotente)."` y `"estadoActual": "ACTIVADA"`.
 * **Comprobar que NO duplicó eventos en auditoría:**
   ```bash
-  curl -s http://localhost:8090/reservas/$RES_WH/historial | jq '.totalEventos'
+  sqlite3 data/m9_reservas.db "SELECT id, reserva_id, tipo_evento, estado_nuevo, actor FROM historial_reservas WHERE reserva_id = '$RES_WH';" -table
   ```
-  *(El número de eventos se mantiene exactamente igual).*
+  *(Siguen exactamente las mismas filas, sin eventos duplicados).*
 
 #### D. Webhook de rechazo (`resultado: "VENCIDA"`) sobre otra reserva
 ```bash
