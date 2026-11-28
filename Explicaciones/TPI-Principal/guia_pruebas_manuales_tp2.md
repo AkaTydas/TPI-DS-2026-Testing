@@ -7,58 +7,13 @@
 
 Tenés **2 modos** según qué quieras probar:
 
-### Opción A — Stack Integrado Real (M2 y M7 reales desde GHCR + M4/M5/M8 OpenAPI mocks + Redis + RabbitMQ + Grafana)
-**¡NO hace falta clonar ni compilar los repos de M2 ni M7!** El archivo `docker-compose.integrado.yml` ya baja y levanta automáticamente en tu compu:
-* **M2 Clientes real** (Grupo 01, FastAPI + MongoDB en puerto `8082`)
-* **M7 Tarifas real** (Grupo 11, FastAPI + MySQL en puerto `8087`, vía adaptador `openapi-mocks:8090`)
-* **M4, M5 y M8** (mocks OpenAPI externos en `openapi-mocks:8090`)
-* **Keycloak mock (`jwks-mock`)** en puerto `8080` (RS256 JWKS + OAuth2 `client_credentials` para M2M)
-* **PostgreSQL 16 + Redis 7 + RabbitMQ 3 + Grafana/Loki/Tempo (`otel-lgtm` en `3005`)**
-
+### Opción A — Stack completo con M2 y M7 reales + Grafana + jwks-mock (recomendado para probar todo junto)
 ```bash
 cd 2026-08-TPI
-# 1. Si pusheaste el frontend a main, esperar ~1 min a que GHCR publique m9_g8:latest y luego:
-docker compose -f docker-compose.integrado.yml pull m9-reservas
+# OJO: docker-compose.integrado.yml usa la imagen de GHCR; para probar tu código local con el frontend,
+# reemplazá temporalmente o levantá con docker-compose.yml (Opción B) o compilá/pusheá tu imagen.
 docker compose -f docker-compose.integrado.yml up -d
 ```
-
-> **Paso obligatorio al usar M2 real (`USE_EXTERNAL_MOCKS=false`):**  
-> M2 exige que el `clienteId` sea un **UUID** y que el cliente **esté dado de alta en MongoDB** antes de reservar (si no existe, M2 devuelve `404 Cliente no encontrado` y M9 te rechaza la creación con `404`).
->
-> ```bash
-> # 1. Elegir un UUID de cliente y pedir token RS256 para ese usuario en jwks-mock:
-> CLIENTE_ID="11111111-1111-4111-8111-111111111111"
-> TOKEN=$(curl -s "http://localhost:8080/token?sub=${CLIENTE_ID}&roles=CLIENTE" | node -e "console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).token)")
-> echo "$TOKEN"
->
-> # 2. Dar de alta el cliente en M2 real (puerto 8082):
-> curl -i -X POST http://localhost:8082/api/v1/clientes \
->   -H "Authorization: Bearer $TOKEN" \
->   -H "Content-Type: application/json" \
->   -d "{\"clienteId\":\"${CLIENTE_ID}\",\"nombre\":\"Pablo Test\",\"email\":\"pablo@test.com\",\"telefono\":\"3624000000\"}"
-> ```
->
-> 3. Pegá ese `$TOKEN` en el frontend (`http://localhost:8089/`), poné `clienteId = 11111111-1111-4111-8111-111111111111` y tocá **`POST /reservas`**.
->    * M9 le va a pedir un token M2M a `jwks-mock`, consultar a **M2 real** en MongoDB, consultar a **M4 mock**, pedir la tarifa a **M7 real** en MySQL (vas a ver una tarifa real tipo `4965 ARS` con *"Tarifa calculada por M7 real"*), guardar en Postgres, cachear en Redis y publicar el evento en RabbitMQ.
-
-> **Aviso importante al cancelar contra M7 real en `docker-compose.integrado.yml`:**  
-> En `k6/openapi-mocks.js`, el proxy adaptó `/api/v1/tarifas/estimar` hacia M7 real (`/tarifas/estimar`) y manejó `/pagos/cancelar`, pero M9 llama a `POST /api/v1/tarifas/cancelacion`. Si al cancelar contra el stack integrado M7 real te responde `404` (porque M7 real no tiene `/tarifas/cancelacion`), es normal hasta que todos los grupos alineen el contrato definitivo de cancelación.
-
----
-
-### Matriz de Integración — Qué Necesita M9 de Cada Módulo y Viceversa
-
-Si en algún momento levantás otro módulo de otro grupo en tu compu (sin Docker integrado), solo apuntás las URLs en `.env` con `USE_EXTERNAL_MOCKS=false`:
-
-| Módulo | Dirección | Endpoint / Canal | Qué envía M9 | Qué espera M9 / qué prueba |
-| :--- | :---: | :--- | :--- | :--- |
-| **M1 (Keycloak)** | M9 ↔ M1 | `GET .../certs` y `POST .../token` | Valida JWT RS256 entrantes; pide token M2M `client_credentials` (`grupo-08`) | Clave pública JWKS y `access_token` para llamar a M2/M4/M5/M7 |
-| **M2 (Clientes)** | M9 → M2 | `GET ${M2_CLIENTES_URL}/api/v1/clientes/:id/estado-cuenta` | `Authorization: Bearer <M2M>`, `X-Request-Id` | `{ estado: "ACTIVO" \| "BLOQUEADO" }` (`404` si no existe, `422` si está bloqueado) |
-| **M4 (Ubicación)** | M9 → M4 | `POST ${M4_UBICACION_URL}/api/v1/ubicaciones/validar-estimar` | `{ origen, destino, tipo_vehiculo, fecha_hora }` | `{ origen_valido, destino_valido, motivo, distancia_km, tiempo_estimado_min }` |
-| **M7 (Tarifas)** | M9 → M7 | `POST ${M7_TARIFAS_URL}/api/v1/tarifas/estimar` y `/api/v1/tarifas/cancelacion` | Distancia, tiempo, vehículo, fecha / datos de cancelación tardía | `{ tarifa_estimada, moneda, condiciones }` (cacheado 10 min en Redis) / `{ cargo_aplicado, estado_financiero }` |
-| **M5 (Despacho)** | M9 → M5 | `POST ${M5_DESPACHO_URL}/api/v1/solicitudes` | Header `Idempotency-Key` + datos de la reserva | `{ solicitud_id }` (llamado desde `POST /activar` o Scheduler a 20 min) |
-| **M5 (Webhook)** | M5 → M9 | `POST http://localhost:8089/reservas/:id/despacho` | Rol `solicitud-be` o `SERVICIO` + `{ solicitud_id, resultado: "CONFIRMADA"\|"VENCIDA", fecha }` | Pasa la reserva a `ACTIVADA` o `VENCIDA` (idempotente; rechaza `409` sobre `CANCELADA`) |
-| **M8 (Notif.)** | M9 → RMQ → M8 | Exchange topic `reservas.events` (fallback HTTP `POST /api/v1/notificaciones/eventos`) | JSON con `evento_id` UUID y routing key `reserva.confirmada`, `.modificada`, `.recordatorio`, `.cancelada`, `.activada`, `.vencida` | No bloqueante: si M8 o RabbitMQ caen, la reserva sigue igual |
 
 ### Opción B — Tu código local en vivo (con Postgres + Redis + RabbitMQ en Docker + jwks-mock)
 ```bash
