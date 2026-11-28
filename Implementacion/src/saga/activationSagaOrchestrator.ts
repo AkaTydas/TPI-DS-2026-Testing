@@ -30,7 +30,7 @@ export class ActivationSagaOrchestrator {
     const idempotencyKey = opciones.idempotencyKey || `idem-${reservaId}`;
     const pasos: SagaPasoLog[] = [];
 
-    Logger.info(`========== INICIANDO SAGA DE ACTIVACIÓN (Reserva: ${reservaId}) ==========`, requestId);
+    Logger.info(`========== INICIANDO SAGA DE ACTIVACIÓN (Reserva: ${reservaId} | Key: ${idempotencyKey}) ==========`, requestId);
 
     // 0. Control de Idempotencia estricta con Candado Atómico Anti-TOCTOU (RF-9.10)
     // SWITCH DIDÁCTICO: Si desactivarCandadoIdempotencia es true, muestra la vulnerabilidad original.
@@ -211,6 +211,8 @@ export class ActivationSagaOrchestrator {
     } catch (error: unknown) {
       // Si T1 no llegó a completarse (ej. conflicto OCC 409), no hay nada que compensar
       if (!t1Completado) {
+        const occMsg = error instanceof Error ? error.message : 'Conflicto en T1';
+        Logger.warn(`[OCC | M9] Clave "${idempotencyKey}" rechazada con HTTP 409 Conflict: ${occMsg}`, requestId);
         IdempotencyRepository.liberar(idempotencyKey);
         throw error;
       }
