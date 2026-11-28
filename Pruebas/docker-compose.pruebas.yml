@@ -1,0 +1,329 @@
+# ==============================================================================
+# Stack completo de pruebas de integración real en local (6 módulos reales)
+# M2 (G1) + M4 (G14) + M5 (G4) + M7 (G6) + M8 (G10) + M9 (G8 - rama integracion)
+#
+# Levantar:
+#   cd /home/ArchTydas/UTN/3ro/Desarrollo/TPIposta/Pruebas-Integracion
+#   docker compose -f docker-compose.pruebas.yml up --build -d
+#
+# Cargar datos iniciales (cliente activo/bloqueado en M2 + reglas en M7):
+#   ./seed-integracion.sh
+#
+# Apagar (borrando datos de prueba):
+#   docker compose -f docker-compose.pruebas.yml down -v
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # Infraestructura compartida (Auth mock, Redis, RabbitMQ, Mailpit)
+  # ----------------------------------------------------------------------------
+  jwks-mock:
+    image: node:24-alpine
+    environment:
+      PORT: 8080
+      KEYCLOAK_ISSUER: http://jwks-mock:8080/realms/ds-2026-realm
+      KEYCLOAK_CLIENT_ID: grupo-08
+    volumes:
+      - ./jwks-mock-integracion.js:/app/jwks-mock-integracion.js:ro
+    command: ["node", "/app/jwks-mock-integracion.js"]
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672" # UI RabbitMQ: http://localhost:15672 (guest / guest)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025" # Bandeja Web de emails de M8: http://localhost:8025
+
+  # ----------------------------------------------------------------------------
+  # M2 — Clientes (Grupo 1) + MongoDB 7
+  # ----------------------------------------------------------------------------
+  m2-mongo:
+    image: mongo:7
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  m2-clientes:
+    build:
+      context: ./2026-01-TPI/m2-clientes
+      dockerfile: Dockerfile
+    image: tpi-local-m2-g1:pruebas
+    environment:
+      MONGO_URL: mongodb://m2-mongo:27017
+      MONGO_DB: m2_clientes_db
+      JWKS_URL: http://jwks-mock:8080/realms/ds-2026-realm/protocol/openid-connect/certs
+      JWT_ISSUER: ""
+      JWT_AUDIENCE: ""
+      EXIGIR_SCOPES: "false"
+      CORS_ORIGINS: "*"
+    ports:
+      - "8082:8000"
+    depends_on:
+      m2-mongo:
+        condition: service_healthy
+      jwks-mock:
+        condition: service_healthy
+
+  # ----------------------------------------------------------------------------
+  # M4 — Ubicación y Disponibilidad (Grupo 14) + Postgres 17 + Redis
+  # ----------------------------------------------------------------------------
+  m4-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - ./2026-14-TPI/supabase/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  m4-ubicacion:
+    build:
+      context: ./2026-14-TPI
+      dockerfile: Dockerfile
+    image: tpi-local-m4-g14:pruebas
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@m4-db:5432/postgres
+      REDIS_URL: redis://redis:6379
+      DB_SCHEMA: m4
+      DB_SSL: "false"
+    ports:
+      - "8084:3000"
+    depends_on:
+      m4-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ----------------------------------------------------------------------------
+  # M7 — Tarifas, Pagos y Liquidaciones (Grupo 6) + Postgres 16
+  # ----------------------------------------------------------------------------
+  m7-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: m7
+      POSTGRES_USER: m7
+      POSTGRES_PASSWORD: m7password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U m7 -d m7"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  m7-tarifas:
+    build:
+      context: ./2026-06-TPI/m7-tarifas
+      dockerfile: Dockerfile
+    image: tpi-local-m7-g6:pruebas
+    environment:
+      DATABASE_URL: postgresql+psycopg://m7:m7password@m7-db:5432/m7
+      KEYCLOAK_ISSUER_URI: http://jwks-mock:8080/realms/ds-2026-realm
+      KEYCLOAK_JWKS_URI: http://jwks-mock:8080/realms/ds-2026-realm/protocol/openid-connect/certs
+      AUTH_DISABLED: "true"
+      PASARELA_WEBHOOK_SECRET: local-dev-webhook-secret
+      COMISION_PLATAFORMA: "0.20"
+    ports:
+      - "8087:8000"
+    depends_on:
+      m7-db:
+        condition: service_healthy
+
+  # ----------------------------------------------------------------------------
+  # M8 — Notificaciones, Documentos y Soporte (Grupo 10) + Postgres 16 + Mailpit
+  # ----------------------------------------------------------------------------
+  m8-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: m8_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d m8_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  m8-notificaciones:
+    build:
+      context: ./2026-10-TPI
+      dockerfile: Dockerfile
+    image: tpi-local-m8-g10:pruebas
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      API_PREFIX: api/v1
+      CORS_ORIGIN: "*"
+      DATABASE_URL: postgresql://postgres:postgres@m8-db:5432/m8_db
+      DIRECT_URL: postgresql://postgres:postgres@m8-db:5432/m8_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: "false"
+      SMTP_FROM: soporte@movilidadurbana.local
+    ports:
+      - "8088:3000"
+    depends_on:
+      m8-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  # ----------------------------------------------------------------------------
+  # M5 — Solicitud y Despacho (Grupo 4) + MySQL 8
+  # ----------------------------------------------------------------------------
+  m5-mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: despacho
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  m5-despacho:
+    build:
+      context: .
+      dockerfile: Dockerfile.m5
+    image: tpi-local-m5-g4:pruebas
+    environment:
+      PORT: 3001
+      LOG_LEVEL: info
+      INTERNAL_API_TOKEN: 0587e8dd0e97a886180012bc7e7e86d8e5df9709765818632f548363fa5c7dcc
+      DB_HOST: m5-mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_NAME: despacho
+      DATABASE_URL: mysql://root:password@m5-mysql:3306/despacho
+      KEYCLOAK_URL: http://jwks-mock:8080
+      KEYCLOAK_REALM: ds-2026-realm
+      JWT_CLAIM_ROLES: roles
+      M5_SERVICE_CLIENT_ID: m5-service
+      M5_SERVICE_CLIENT_SECRET: mock-secret
+      M2_URL: http://m2-clientes:8000
+      M4_URL: http://m4-ubicacion:3000
+      M7_URL: http://m7-tarifas:8000
+      M8_URL: http://m8-notificaciones:3000
+      M9_URL: http://m9-backend:8089
+      M3_URL: http://localhost:3003
+      M6_URL: http://localhost:3006
+    ports:
+      - "8085:3001"
+    depends_on:
+      m5-mysql:
+        condition: service_healthy
+      jwks-mock:
+        condition: service_healthy
+      m2-clientes:
+        condition: service_started
+      m4-ubicacion:
+        condition: service_started
+      m7-tarifas:
+        condition: service_started
+      m8-notificaciones:
+        condition: service_started
+
+  # ----------------------------------------------------------------------------
+  # M9 — Reservas de Viajes (Grupo 8 — TU MÓDULO + FRONTEND) + Postgres 16
+  # ----------------------------------------------------------------------------
+  m9-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: m9_reservas
+    volumes:
+      - ../2026-08-TPI/sql/01_init_schema.sql:/docker-entrypoint-initdb.d/01_init_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d m9_reservas"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  m9-backend:
+    build:
+      context: ../2026-08-TPI
+      dockerfile: Dockerfile
+    image: tpi-local-m9-g8:pruebas-integracion
+    environment:
+      PORT: 8089
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgres@m9-db:5432/m9_reservas
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      KEYCLOAK_ISSUER: http://jwks-mock:8080/realms/ds-2026-realm
+      KEYCLOAK_CLIENT_ID: grupo-08
+      KEYCLOAK_CLIENT_SECRET: mock-secret
+      KEYCLOAK_JWKS_URI: http://jwks-mock:8080/realms/ds-2026-realm/protocol/openid-connect/certs
+      KEYCLOAK_TOKEN_URI: http://jwks-mock:8080/realms/ds-2026-realm/protocol/openid-connect/token
+      ANTICIPACION_MINIMA_MINUTOS: 30
+      ANTICIPACION_MAXIMA_DIAS: 30
+      M2_CLIENTES_URL: http://m2-clientes:8000
+      M4_UBICACION_URL: http://m4-ubicacion:3000
+      M5_DESPACHO_URL: http://m5-despacho:3001
+      M7_TARIFAS_URL: http://m7-tarifas:8000
+      M8_NOTIFICACIONES_URL: http://m8-notificaciones:3000
+      USE_EXTERNAL_MOCKS: "false"
+      OTEL_ENABLED: "false"
+    ports:
+      - "8089:8089"
+    depends_on:
+      m9-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      jwks-mock:
+        condition: service_healthy
+      m2-clientes:
+        condition: service_started
+      m4-ubicacion:
+        condition: service_started
+      m5-despacho:
+        condition: service_started
+      m7-tarifas:
+        condition: service_started
+      m8-notificaciones:
+        condition: service_started

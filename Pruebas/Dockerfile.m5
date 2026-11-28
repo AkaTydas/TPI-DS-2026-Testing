@@ -1,0 +1,19 @@
+# Dockerfile local para pruebas de integración con M5 (Grupo 4) sin modificar su repo
+FROM node:22-alpine
+
+WORKDIR /app
+
+COPY 2026-04-TPI/package.json 2026-04-TPI/package-lock.json ./
+RUN npm ci
+
+COPY 2026-04-TPI/bd ./bd
+COPY 2026-04-TPI/prisma ./prisma
+COPY 2026-04-TPI/src ./src
+
+# Genera el cliente de Prisma (configurado en bd/prisma7.config.ts)
+RUN npm run db:generate
+
+EXPOSE 3001
+
+# Al arrancar: sincroniza tablas en MySQL, pide un JWT RS256 SERVICIO a jwks-mock para hablar con M2 y levanta M5
+CMD ["sh", "-c", "npx prisma db push --config bd/prisma7.config.ts && export M2_TOKEN=$(node -e \"fetch(process.env.KEYCLOAK_URL + '/token?sub=m5-solicitudes&roles=SERVICIO').then(r=>r.json()).then(d=>process.stdout.write(d.token))\") && exec node src/main.js"]
